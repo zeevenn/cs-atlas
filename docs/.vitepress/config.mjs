@@ -2,11 +2,14 @@ import { defineConfig } from 'vitepress'
 import { groups } from './chapters.mjs'
 import { tokenize } from './search.mjs'
 
+const base = process.env.BASE_PATH || '/'
+
 export default defineConfig({
   lang: 'zh-CN',
   title: 'MySQL 学习笔记',
   description: '从记录、数据页和索引，到查询优化、事务与锁，循序理解 MySQL 的工作原理。',
-  base: process.env.BASE_PATH || '/',
+  base,
+  head: [['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico` }]],
   lastUpdated: true,
   themeConfig: {
     siteTitle: 'MySQL 学习笔记',

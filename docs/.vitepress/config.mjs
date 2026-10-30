@@ -1,13 +1,14 @@
 import { defineConfig } from 'vitepress'
-import { groups } from './chapters.mjs'
+import { groups } from './sidebars/mysql-how-it-works.mjs'
+import { geektimeGroups } from './sidebars/geektime-mysql-shizhan-45.mjs'
 import { tokenize } from './search.mjs'
 
 const base = process.env.BASE_PATH || '/'
 
 export default defineConfig({
   lang: 'zh-CN',
-  title: 'MySQL 学习笔记',
-  description: '从记录、数据页和索引，到查询优化、事务与锁，循序理解 MySQL 的工作原理。',
+  title: 'MySQL 学习文档',
+  description: '《MySQL 是怎样运行的》与《MySQL 实战 45 讲》，从底层原理到日常实战。',
   base,
   head: [
     ['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico?v=2` }],
@@ -15,18 +16,26 @@ export default defineConfig({
   ],
   lastUpdated: true,
   themeConfig: {
-    siteTitle: 'MySQL 学习笔记',
+    siteTitle: 'MySQL 学习文档',
     nav: [
-      { text: '阅读目录', link: '/' }
+      { text: '首页', link: '/' },
+      { text: 'MySQL 是怎样运行的', link: '/mysql-how-it-works/' },
+      { text: 'MySQL 实战 45 讲', link: '/geektime-mysql-shizhan-45/' }
     ],
-    sidebar: groups.map(({ text, items }) => ({
-      text,
-      collapsed: false,
-      items: items.map(({ number, title, link }) => ({
-        text: `${String(number).padStart(2, '0')} · ${title.replace(/^第\d+章 /, '').replace(/^.*?-/, '')}`,
-        link
-      }))
-    })),
+    sidebar: {
+      '/geektime-mysql-shizhan-45/': geektimeGroups,
+      '/mysql-how-it-works/': [
+        { text: '阅读目录', link: '/mysql-how-it-works/' },
+        ...groups.map(({ text, items }) => ({
+          text,
+          collapsed: false,
+          items: items.map(({ number, title, link }) => ({
+            text: `${String(number).padStart(2, '0')} · ${title.replace(/^第\d+章 /, '').replace(/^.*?-/, '')}`,
+            link
+          }))
+        }))
+      ]
+    },
     outline: { level: [2, 3], label: '本页目录' },
     search: {
       provider: 'local',

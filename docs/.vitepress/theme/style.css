@@ -39,3 +39,47 @@
 ::selection {
   background: var(--vp-c-brand-soft);
 }
+
+.VPHome .VPHero .container,
+.VPHome .VPFeatures .container {
+  max-width: 960px;
+}
+
+.VPHome .VPHero {
+  padding-bottom: 40px;
+}
+
+.VPHome .VPHero .text {
+  max-width: none;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.VPHome .VPFeature .title {
+  font-size: 20px;
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+.VPHome .VPFeature .details {
+  padding-top: 12px;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.VPHome .VPFeature .link-text {
+  padding-top: 24px;
+}
+
+.VPHome .VPFeature.link:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 4px;
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+  .VPHome .VPFeatures .item.grid-2 {
+    width: 100%;
+  }
+}

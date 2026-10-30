@@ -1,4 +1,4 @@
-# MySQL 学习笔记
+# MySQL 学习文档
 
 基于 VitePress 的《MySQL 是怎样运行的：从根儿上理解 MySQL》学习文档，包含第 0–26 章、技术配图。
 

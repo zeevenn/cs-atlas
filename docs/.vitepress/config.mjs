@@ -9,7 +9,10 @@ export default defineConfig({
   title: 'MySQL 学习笔记',
   description: '从记录、数据页和索引，到查询优化、事务与锁，循序理解 MySQL 的工作原理。',
   base,
-  head: [['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico` }]],
+  head: [
+    ['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico?v=2` }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }]
+  ],
   lastUpdated: true,
   themeConfig: {
     siteTitle: 'MySQL 学习笔记',

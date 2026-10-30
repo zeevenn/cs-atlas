@@ -1,0 +1,11 @@
+{
+  "default": true,
+  // 中文正文、SQL 示例和表格保留原始长行，由阅读器自动换行或滚动。
+  "MD013": false,
+  "MD007": { "indent": 4 },
+  // SQL/终端输出中的 Tab 属于示例内容，不作为正文缩进修复。
+  "MD010": { "code_blocks": false },
+  "MD024": { "siblings_only": true },
+  // VitePress 支持的既有强调与表格排版，不关闭其他 HTML 检查。
+  "MD033": { "allowed_elements": ["span", "div", "center", "b", "code"] }
+}

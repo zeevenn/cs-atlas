@@ -1,0 +1,41 @@
+:root {
+  --vp-c-brand-1: #216a78;
+  --vp-c-brand-2: #287d8d;
+  --vp-c-brand-3: #216a78;
+  --vp-c-brand-soft: rgba(33, 106, 120, 0.12);
+  --vp-font-family-base: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.dark {
+  --vp-c-brand-1: #82c7d2;
+  --vp-c-brand-2: #9bd7e0;
+  --vp-c-brand-3: #287d8d;
+  --vp-c-brand-soft: rgba(130, 199, 210, 0.14);
+}
+
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.9;
+}
+
+.vp-doc img {
+  height: auto;
+  margin: 24px auto;
+  background: white;
+}
+
+.vp-doc :where(h1, h2, h3) {
+  text-wrap: pretty;
+}
+
+.vp-doc span[style*='color:red'] {
+  color: #b42318 !important;
+}
+
+.dark .vp-doc span[style*='color:red'] {
+  color: #ff9b9b !important;
+}
+
+::selection {
+  background: var(--vp-c-brand-soft);
+}

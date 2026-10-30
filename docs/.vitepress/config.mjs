@@ -11,7 +11,7 @@ export default defineConfig({
   base,
   head: [
     ['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico?v=2` }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }]
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg?v=3` }]
   ],
   lastUpdated: true,
   themeConfig: {

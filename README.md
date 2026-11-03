@@ -43,21 +43,21 @@ docs/
 
 ## 本地阅读
 
-需要 Node.js 20 或更高版本。
+需要 Node.js 20 或更高版本，以及 pnpm 10.30.3。
 
 ```sh
-npm ci
-npm run docs:dev
+pnpm install --frozen-lockfile
+pnpm run docs:dev
 ```
 
 ## 构建
 
 ```sh
-npm run docs:build
-npm run docs:preview
+pnpm run docs:build
+pnpm run docs:preview
 ```
 
-Markdown 检查：`npm run lint:md`。
+Markdown 检查：`pnpm run lint:md`。
 
 输出目录为 `docs/.vitepress/dist`。站点配置位于 `docs/.vitepress/config.mjs`，首页位于 `docs/index.md`。
 
@@ -68,5 +68,5 @@ Markdown 检查：`npm run lint:md`。
 本地构建相同的部署路径：
 
 ```sh
-BASE_PATH=/cs-atlas/ npm run docs:build
+BASE_PATH=/cs-atlas/ pnpm run docs:build
 ```

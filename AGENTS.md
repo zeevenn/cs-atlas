@@ -50,5 +50,5 @@ docs/
 
 - 新增教材或专栏时，更新教材索引及 `docs/.vitepress/config.mjs` 中对应的侧边栏。
 - 新增专题时，更新专题索引及对应侧边栏；正文通过链接复用已有资料。
-- 内容变更运行 `npm run lint:md`；新增页面、修改路径或站点配置时，运行 `BASE_PATH=/cs-atlas/ npm run docs:build`，检查构建与站内链接。
+- 内容变更运行 `pnpm run lint:md`；新增页面、修改路径或站点配置时，运行 `BASE_PATH=/cs-atlas/ pnpm run docs:build`，检查构建与站内链接。
 - 仅修改本文件时，检查 Markdown 格式与差异即可，无需重建站点。

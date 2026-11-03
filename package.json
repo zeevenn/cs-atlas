@@ -16,15 +16,15 @@
     "markdownlint-cli2": "0.22.0",
     "vitepress": "1.6.4"
   },
-  "overrides": {
-    "vite": "6.4.5",
-    "markdownlint-cli2": {
-      "js-yaml": "4.3.2",
-      "markdown-it": "14.3.3",
-      "smol-toml": "1.9.1"
-    },
-    "micromark-extension-math": {
-      "katex": "0.18.2"
+  "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"],
+    "overrides": {
+      "vite": "6.4.5",
+      "markdownlint-cli2>js-yaml": "4.3.2",
+      "markdownlint-cli2>markdown-it": "14.3.3",
+      "markdownlint-cli2>smol-toml": "1.9.1",
+      "micromark-extension-math>katex": "0.18.2"
     }
   }
 }

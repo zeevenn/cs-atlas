@@ -32,7 +32,7 @@ jobs:
       - run: npm run lint:md
       - run: npm run docs:build
         env:
-          BASE_PATH: /mysql-internals-guide/
+          BASE_PATH: /cs-atlas/
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v4

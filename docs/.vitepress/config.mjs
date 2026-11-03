@@ -65,6 +65,6 @@ export default defineConfig({
     lightModeSwitchTitle: '切换为浅色模式',
     darkModeSwitchTitle: '切换为深色模式',
     lastUpdated: { text: '最后更新', formatOptions: { dateStyle: 'medium' } },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/zeevenn/mysql-internals-guide' }]
+    socialLinks: [{ icon: 'github', link: 'https://github.com/zeevenn/cs-atlas' }]
   }
 })

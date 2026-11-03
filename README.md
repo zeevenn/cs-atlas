@@ -22,12 +22,12 @@ npm run docs:preview
 
 ## GitHub Pages
 
-在线阅读：[MySQL 学习笔记](https://zeevenn.github.io/mysql-internals-guide/)。
+在线阅读：[MySQL 学习笔记](https://zeevenn.github.io/cs-atlas/)。
 
 推送到 `main` 分支后，GitHub Actions 自动构建并部署。仓库的 Settings → Pages → Source 使用 GitHub Actions。
 
 本地构建相同的部署路径：
 
 ```sh
-BASE_PATH=/mysql-internals-guide/ npm run docs:build
+BASE_PATH=/cs-atlas/ npm run docs:build
 ```

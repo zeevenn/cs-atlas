@@ -7,22 +7,39 @@ const base = process.env.BASE_PATH || '/'
 
 export default defineConfig({
   lang: 'zh-CN',
-  title: 'MySQL 学习文档',
-  description: '《MySQL 是怎样运行的》与《MySQL 实战 45 讲》，从底层原理到日常实战。',
+  title: '计算机知识学习图鉴',
+  description: 'CS Atlas · 收录经典教材与优质文章，按知识主题组织阅读路径，从基础概念走向工程原理。',
   base,
   head: [
     ['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico?v=2` }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg?v=3` }]
   ],
   lastUpdated: true,
+  markdown: {
+    config(md) {
+      md.core.ruler.before('block', 'frontmatter-title', (state) => {
+        const { title, layout = 'doc' } = state.env.frontmatter || {}
+        if (title && layout === 'doc') {
+          state.src = `# ${title}\n\n${state.src}`
+        }
+      })
+    }
+  },
   themeConfig: {
-    siteTitle: 'MySQL 学习文档',
+    siteTitle: 'CS Atlas · 学习图鉴',
     nav: [
       { text: '首页', link: '/' },
-      { text: 'MySQL 是怎样运行的', link: '/mysql-how-it-works/' },
-      { text: 'MySQL 实战 45 讲', link: '/geektime-mysql-shizhan-45/' }
+      { text: '教材与专栏', link: '/library/' },
+      { text: '学习专题', link: '/topics/' }
     ],
     sidebar: {
+      '/topics/': [
+        { text: '学习专题', link: '/topics/' },
+        {
+          text: '数据库',
+          items: [{ text: '数据库中的数据结构', link: '/topics/database-data-structures' }]
+        }
+      ],
       '/geektime-mysql-shizhan-45/': geektimeGroups,
       '/mysql-how-it-works/': [
         { text: '阅读目录', link: '/mysql-how-it-works/' },

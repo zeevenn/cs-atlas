@@ -1,4 +1,6 @@
-# 林晓斌：我的 MySQL 心路历程
+---
+title: "林晓斌：我的 MySQL 心路历程"
+---
 
 ![林晓斌：我的 MySQL 心路历程（配图）](<../images/image-27.png>)
 

@@ -1,4 +1,6 @@
-# 42 grant之后要跟着flush privileges吗？
+---
+title: "42 grant之后要跟着flush privileges吗？"
+---
 
 ![42 grant之后要跟着flush privileges吗？（配图）](<../images/image-30.png>)
 

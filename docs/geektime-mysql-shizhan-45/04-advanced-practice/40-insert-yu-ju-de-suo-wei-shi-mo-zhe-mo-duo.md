@@ -1,4 +1,6 @@
-# 40 insert语句的锁为什么这么多？
+---
+title: "40 insert语句的锁为什么这么多？"
+---
 
 ![40 insert语句的锁为什么这么多？（配图）](<../images/image-12.png>)
 

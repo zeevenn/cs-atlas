@@ -11,6 +11,7 @@ export default defineConfig({
   description: 'CS Atlas · 收录经典教材与优质文章，按知识主题组织阅读路径，从基础概念走向工程原理。',
   base,
   head: [
+    ['meta', { name: 'referrer', content: 'no-referrer' }],
     ['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico?v=2` }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg?v=3` }]
   ],

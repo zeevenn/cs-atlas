@@ -89,8 +89,6 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 ![图 1 数据恢复流程-mysqlbinlog 方法](https://static001.geekbang.org/resource/image/2f/db/2fafd0b75286e0163f432f85428ff8db.png)
 
-图 1 数据恢复流程-mysqlbinlog 方法
-
 关于这个过程，我需要和你说明如下几点：
 
 1. 为了加速数据恢复，如果这个临时库上有多个数据库，你可以在使用 mysqlbinlog 命令时，加上一个–database 参数，用来指定误删表所在的库。这样，就避免了在恢复数据时还要应用其他库日志的情况。
@@ -112,8 +110,6 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 这个过程的示意图如下所示。
 
 ![图 2 数据恢复流程-master-slave 方法](https://static001.geekbang.org/resource/image/65/f1/65bb04929b8235fb677c7a78b5bd67f1.png)
-
-图 2 数据恢复流程-master-slave 方法
 
 可以看到，图中 binlog 备份系统到线上备库有一条虚线，是指如果由于时间太久，备库上已经删除了临时实例需要的 binlog 的话，我们可以从 binlog 备份系统中找到需要的 binlog，再放回备库中。
 
@@ -214,11 +210,7 @@ select * from t where id>1 for update;
 
 ![图 3 复现空表的 next-key lock](https://static001.geekbang.org/resource/image/12/65/12eb6a38c347203f60df72ecaea95565.png)
 
-图 3 复现空表的 next-key lock
-
 ![图 4 show engine innodb status 部分结果](https://static001.geekbang.org/resource/image/53/9f/531b6556ffc82c6b02f9a010a3ceb09f.png)
-
-图 4 show engine innodb status 部分结果
 
 评论区留言点赞板：
 

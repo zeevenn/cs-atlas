@@ -45,8 +45,6 @@ commit;
 
 ![图 1 假设只在 id=5 这一行加行锁](https://static001.geekbang.org/resource/image/5b/8b/5bc506e5884d21844126d26bbe6fa68b.png)
 
-图 1 假设只在 id=5 这一行加行锁
-
 可以看到，session A 里执行了三次查询，分别是 Q1、Q2 和 Q3。它们的 SQL 语句相同，都是 select \* from t where d=5 for update。这个语句的意思你应该很清楚了，查所有 d=5 的行，而且使用的是当前读，并且加上写锁。现在，我们来看一下这三条 SQL 语句，分别会返回什么结果。
 
 1. Q1 只返回 id=5 这一行；
@@ -76,8 +74,6 @@ commit;
 
 ![图 2 假设只在 id=5 这一行加行锁--语义被破坏](https://static001.geekbang.org/resource/image/7a/07/7a9ffa90ac3cc78db6a51ff9b9075607.png)
 
-图 2 假设只在 id=5 这一行加行锁--语义被破坏
-
 session B 的第二条语句 update t set c=5 where id=0，语义是「我把 id=0、d=5 这一行的 c 值，改成了 5」。
 
 由于在 T1 时刻，session A 还只是给 id=5 这一行加了行锁， 并没有给 id=0 这行加上锁。因此，session B 在 T2 时刻，是可以执行这两条 update 语句的。这样，就破坏了 session A 里 Q1 语句要锁住所有 d=5 的行的加锁声明。
@@ -91,8 +87,6 @@ session C 也是一样的道理，对 id=1 这一行的修改，也是破坏了 
 为了说明这个问题，我给 session A 在 T1 时刻再加一个更新语句，即：update t set d=100 where d=5。
 
 ![图 3 假设只在 id=5 这一行加行锁--数据一致性问题](https://static001.geekbang.org/resource/image/dc/92/dcea7845ff0bdbee2622bf3c67d31d92.png)
-
-图 3 假设只在 id=5 这一行加行锁--数据一致性问题
 
 update 的加锁语义和 select …for update 是一致的，所以这时候加上这条 update 语句也很合理。session A 声明说要给 d=5 的语句加上锁，就是为了要更新数据，新加的这条 update 语句就是把它认为加上了锁的这一行的 d 值修改成了 100。
 
@@ -135,8 +129,6 @@ update t set d=100 where d=5;/*所有d=5的行，d改成100*/
 
 ![图 4 假设扫描到的行都被加上了行锁](https://static001.geekbang.org/resource/image/34/47/34ad6478281709da833856084a1e3447.png)
 
-图 4 假设扫描到的行都被加上了行锁
-
 由于 session A 把所有的行都加了写锁，所以 session B 在执行第一个 update 语句的时候就被锁住了。需要等到 T6 时刻 session A 提交以后，session B 才能继续执行。
 
 这样对于 id=0 这一行，在数据库里的最终结果还是 (0,5,5)。在 binlog 里面，执行序列是这样的：
@@ -171,8 +163,6 @@ update t set c=5 where id=0; /*(0,5,5)*/
 
 ![图 5 表 t 主键索引上的行锁和间隙锁](https://static001.geekbang.org/resource/image/e7/61/e7f7ca0d3dab2f48c588d714ee3ac861.png)
 
-图 5 表 t 主键索引上的行锁和间隙锁
-
 这样，当你执行 select \* from t where d=5 for update 的时候，就不止是给数据库中已有的 6 个记录加上了行锁，还同时加了 7 个间隙锁。这样就确保了无法再插入新的记录。
 
 也就是说这时候，在一行行扫描的过程中，不仅将给行加上了行锁，还给行两边的空隙，也加上了间隙锁。
@@ -183,8 +173,6 @@ update t set c=5 where id=0; /*(0,5,5)*/
 
 ![图 6 两种行锁间的冲突关系](https://static001.geekbang.org/resource/image/c4/51/c435c765556c0f3735a6eda0779ff151.png)
 
-图 6 两种行锁间的冲突关系
-
 也就是说，跟行锁有冲突关系的是另外一个行锁。
 
 但是间隙锁不一样， **跟间隙锁存在冲突关系的，是往这个间隙中插入一个记录这个操作。** 间隙锁之间都不存在冲突关系。
@@ -192,8 +180,6 @@ update t set c=5 where id=0; /*(0,5,5)*/
 这句话不太好理解，我给你举个例子：
 
 ![图 7 间隙锁之间不互锁](https://static001.geekbang.org/resource/image/7c/98/7c37732d936650f1cda7dbf27daf7498.png)
-
-图 7 间隙锁之间不互锁
 
 这里 session B 并不会被堵住。因为表 t 里并没有 c=7 这个记录，因此 session A 加的是间隙锁(5,10)。而 session B 也是在这个间隙加的间隙锁。它们有共同的目标，即：保护这个间隙，不允许插入值。但，它们之间是不冲突的。
 
@@ -230,8 +216,6 @@ commit;
 这里，我用两个 session 来模拟并发，并假设 N=9。
 
 ![图 8 间隙锁导致的死锁](https://static001.geekbang.org/resource/image/df/be/df37bf0bb9f85ea59f0540e24eb6bcbe.png)
-
-图 8 间隙锁导致的死锁
 
 你看到了，其实都不需要用到后面的 update 语句，就已经形成死锁了。我们按语句执行顺序来分析一下：
 
@@ -277,8 +261,6 @@ commit;
 作为对下一篇文章的预习，我给你留下一个思考题。
 
 ![图 9 事务进入锁等待状态](https://static001.geekbang.org/resource/image/0d/3d/0d796060073668ca169166a8903fbf3d.png)
-
-图 9 事务进入锁等待状态
 
 如果你之前没有了解过本篇文章的相关内容，一定觉得这三个语句简直是风马牛不相及。但实际上，这里 session B 和 session C 的 insert 语句都会进入锁等待状态。
 

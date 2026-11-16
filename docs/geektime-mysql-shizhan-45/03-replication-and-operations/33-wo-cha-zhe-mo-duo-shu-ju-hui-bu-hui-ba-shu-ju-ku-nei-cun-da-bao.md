@@ -33,8 +33,6 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 ![图 1 查询结果发送流程](https://static001.geekbang.org/resource/image/a0/bd/a027c300d7dde8cea4fad8f34b670ebd.jpg)
 
-图 1 查询结果发送流程
-
 从这个流程中，你可以看到：
 
 1. 一个查询在发送过程中，占用的 MySQL 内部的内存最大就是 net\_buffer\_length 这么大，并不会达到 200G；
@@ -45,8 +43,6 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 比如下面这个状态，就是我故意让客户端不去读 socket receive buffer 中的内容，然后在服务端 show processlist 看到的结果。
 
 ![图 2 服务端发送阻塞](https://static001.geekbang.org/resource/image/18/c3/183a704d4495bebbc13c524695b5b6c3.png)
-
-图 2 服务端发送阻塞
 
 如果你看到 State 的值一直处于 **`Sending to client`** ，就表示服务器端的网络栈写满了。
 
@@ -73,11 +69,7 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 ![图 3 读全表被锁](https://static001.geekbang.org/resource/image/76/4b/7640b0d82965bf8b305514f30425424b.png)
 
-图 3 读全表被锁
-
 ![图 4 Sending data 状态](https://static001.geekbang.org/resource/image/84/c0/84533515cf36be65582309fbb85e13c0.png)
-
-图 4 Sending data 状态
 
 可以看到，session B 明显是在等锁，状态显示为 Sending data。
 
@@ -105,8 +97,6 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 ![图 5 show engine innodb status 显示内存命中率](https://static001.geekbang.org/resource/image/c7/2e/c70a95ee99826812c292c46de508982e.png)
 
-图 5 show engine innodb status 显示内存命中率
-
 如果所有查询需要的数据页都能够直接从内存得到，那是最好的，对应的命中率就是 100%。但，这在实际生产上是很难做到的。
 
 InnoDB Buffer Pool 的大小是由参数 innodb\_buffer\_pool\_size 确定的，一般建议设置成可用物理内存的 60%\~80%。
@@ -120,8 +110,6 @@ InnoDB 内存管理用的是最近最少使用 (Least Recently Used, LRU)算法�
 下图是一个 LRU 算法的基本模型。
 
 ![图 6 基本 LRU 算法](https://static001.geekbang.org/resource/image/e0/65/e0ac92febac50a5d881f1188ea5bfd65.jpg)
-
-图 6 基本 LRU 算法
 
 InnoDB 管理 Buffer Pool 的 LRU 算法，是用链表来实现的。
 
@@ -141,8 +129,6 @@ InnoDB 管理 Buffer Pool 的 LRU 算法，是用链表来实现的。
 所以，InnoDB 不能直接使用这个 LRU 算法。实际上，InnoDB 对 LRU 算法做了改进。
 
 ![图 7 改进的 LRU 算法](https://static001.geekbang.org/resource/image/25/9e/25e18920dd204cf99eec2d62755fe99e.png)
-
-图 7 改进的 LRU 算法
 
 在 InnoDB 实现上，按照 5:3 的比例把整个 LRU 链表分成了 young 区域和 old 区域。图中 LRU\_old 指向的就是 old 区域的第一个位置，是整个链表的 5/8 处。也就是说，靠近链表头部的 5/8 是 young 区域，靠近链表尾部的 3/8 是 old 区域。
 

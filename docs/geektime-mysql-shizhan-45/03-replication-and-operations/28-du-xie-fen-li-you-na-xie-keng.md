@@ -10,15 +10,11 @@ title: "28 读写分离有哪些坑？"
 
 ![图 1 读写分离基本结构](https://static001.geekbang.org/resource/image/13/aa/1334b9c08b8fd837832fdb2d82e6b0aa.png)
 
-图 1 读写分离基本结构
-
 读写分离的主要目标就是分摊主库的压力。图 1 中的结构是客户端（client）主动做负载均衡，这种模式下一般会把数据库的连接信息放在客户端的连接层。也就是说，由客户端来选择后端数据库进行查询。
 
 还有一种架构是，在 MySQL 和客户端之间有一个中间代理层 proxy，客户端只连接 proxy， 由 proxy 根据请求类型和上下文决定请求的分发路由。
 
 ![图 2 带 proxy 的读写分离架构](https://static001.geekbang.org/resource/image/06/18/065ef246c59019effc8384967d774318.png)
-
-图 2 带 proxy 的读写分离架构
 
 接下来，我们就看一下客户端直连和带 proxy 的读写分离架构，各有哪些特点。
 
@@ -95,8 +91,6 @@ seconds\_behind\_master 的单位是秒，如果你觉得精度不够的话，�
 
 ![图 3 show slave status 结果](https://static001.geekbang.org/resource/image/00/c1/00110923007513e865d7f43a124887c1.png)
 
-图 3 show slave status 结果
-
 现在，我们就通过这个结果，来看看具体如何通过对比位点和 GTID 来确保主备无延迟。
 
 **第二种方法，** 对比位点确保主备无延迟：
@@ -129,8 +123,6 @@ seconds\_behind\_master 的单位是秒，如果你觉得精度不够的话，�
 如图 4 所示就是这样的一个状态。
 
 ![图 4 备库还没收到 trx3](https://static001.geekbang.org/resource/image/55/9e/557445207b57d6c0f2747509d7d6619e.png)
-
-图 4 备库还没收到 trx3
 
 这时，主库上执行完成了三个事务 trx1、trx2 和 trx3，其中：
 
@@ -171,8 +163,6 @@ semi-sync 做了这样的设计：
 为什么这么说呢？我们来看一下这个时序图。
 
 ![图 5 主备持续延迟一个事务](https://static001.geekbang.org/resource/image/9c/09/9cf54f3e91dc8f7b8947d7d8e384aa09.png)
-
-图 5 主备持续延迟一个事务
 
 图 5 所示，就是等待位点方案的一个 bad case。图中备库 B 下的虚线框，分别表示 relaylog 和 binlog 中的事务。可以看到，图 5 中从状态 1 到状态 4，一直处于延迟一个事务的状态。
 
@@ -221,8 +211,6 @@ select master_pos_wait(file, pos[, timeout]);
 
 ![图 6 master\_pos\_wait 方案](https://static001.geekbang.org/resource/image/b2/57/b20ae91ea46803df1b63ed683e1de357.png)
 
-图 6 master\_pos\_wait 方案
-
 这里我们假设，这条 select 查询最多在从库上等待 1 秒。那么，如果 1 秒内 master\_pos\_wait 返回一个大于等于 0 的整数，就确保了从库上执行的这个查询结果一定包含了 trx1 的数据。
 
 步骤 5 到主库执行查询语句，是这类方案常用的退化机制。因为从库的延迟时间不可控，不能无限等待，所以如果等待超时，就应该放弃，然后到主库去查。
@@ -262,8 +250,6 @@ MySQL 中同样提供了一个类似的命令：
 
 ![图 7 wait\_for\_executed\_gtid\_set 方案](https://static001.geekbang.org/resource/image/d5/39/d521de8017297aff59db2f68170ee739.png)
 
-图 7 wait\_for\_executed\_gtid\_set 方案
-
 在上面的第一步中，trx1 事务更新完成后，从返回包直接获取这个事务的 GTID。问题是，怎么能够让 MySQL 在执行事务后，返回包中带上 GTID 呢？
 
 你只需要将参数 session\_track\_gtids 设置为 OWN\_GTID，然后通过 API 接口 mysql\_session\_track\_get\_first 从返回包解析出 GTID 的值即可。
@@ -276,13 +262,9 @@ MySQL 中同样提供了一个类似的命令：
 
 ![图 8 显示更新事务的 GTID-- 代码](https://static001.geekbang.org/resource/image/97/63/973bdd8741f830acebe005cbf37a7663.png)
 
-图 8 显示更新事务的 GTID-- 代码
-
 这样，就可以看到语句执行完成，显示出 GITD 的值。
 
 ![图 9 显示更新事务的 GTID-- 效果](https://static001.geekbang.org/resource/image/25/fe/253106d31d9d97aaa2846b2015f593fe.png)
-
-图 9 显示更新事务的 GTID-- 效果
 
 当然了，这只是一个例子。你要使用这个方案的时候，还是应该在你的客户端代码中调用 mysql\_session\_track\_get\_first 这个函数。
 

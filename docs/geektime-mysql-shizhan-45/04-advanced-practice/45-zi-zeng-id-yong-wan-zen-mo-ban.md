@@ -54,11 +54,7 @@ insert into t values(null);
 
 ![图 1 row\_id 用完的验证序列](https://static001.geekbang.org/resource/image/6a/9a/6a7bfd460f9e75afcfcfc4a963339a9a.png)
 
-图 1 row\_id 用完的验证序列
-
 ![图 2 row\_id 用完的效果验证](https://static001.geekbang.org/resource/image/5a/5c/5ad1fff81bda3a6b00ec84e84753fa5c.png)
-
-图 2 row\_id 用完的效果验证
 
 可以看到，在我用 gdb 将 dict\_sys.row\_id 设置为 248 之后，再插入的 a=2 的行会出现在表 t 的第一行，因为这个值的 row\_id=0。之后再插入的 a=3 的行，由于 row\_id=1，就覆盖了之前 a=1 的行，因为 a=1 这一行的 row\_id 也是 1。
 
@@ -106,8 +102,6 @@ InnoDB 数据可见性的核心思想是：每一行数据都记录了更新它�
 
 ![图 3 事务的 trx\_id](https://static001.geekbang.org/resource/image/94/7c/94c704190f7609b3e6443688368cd97c.png)
 
-图 3 事务的 trx\_id
-
 session B 里，我从 innodb\_trx 表里查出的这两个字段，第二个字段 trx\_mysql\_thread\_id 就是线程 id。显示线程 id，是为了说明这两次查询看到的事务对应的线程 id 都是 5，也就是 session A 所在的线程。
 
 可以看到，T2 时刻显示的 trx\_id 是一个很大的数；T4 时刻显示的 trx\_id 是 1289，看上去是一个比较正常的数字。这是什么原因呢？
@@ -149,8 +143,6 @@ session B 里，我从 innodb\_trx 表里查出的这两个字段，第二个字
 首先我们需要把当前的 max\_trx\_id 先修改成 248-1。注意：这个 case 里使用的是可重复读隔离级别。具体的操作流程如下：
 
 ![图 4 复现脏读](https://static001.geekbang.org/resource/image/13/c0/13735f955a437a848895787bf9c723c0.png)
-
-图 4 复现脏读
 
 由于我们已经把系统的 max\_trx\_id 设置成了 248-1，所以在 session A 启动的事务 TA 的低水位就是 248-1。
 

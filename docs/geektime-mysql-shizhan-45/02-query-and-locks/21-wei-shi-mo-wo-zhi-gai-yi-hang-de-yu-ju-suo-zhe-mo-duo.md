@@ -46,8 +46,6 @@ insert into t values(0,0,0),(5,5,5),
 
 ![图 1 等值查询的间隙锁](https://static001.geekbang.org/resource/image/58/6c/585dfa8d0dd71171a6fa16bed4ba816c.png)
 
-图 1 等值查询的间隙锁
-
 由于表 t 中没有 id=7 的记录，所以用我们上面提到的加锁规则判断一下的话：
 
 1. 根据原则 1，加锁单位是 next-key lock，session A 加锁范围就是(5,10]；
@@ -60,8 +58,6 @@ insert into t values(0,0,0),(5,5,5),
 第二个例子是关于覆盖索引上的锁：
 
 ![图 2 只加在非唯一索引上的锁](https://static001.geekbang.org/resource/image/46/65/465990fe8f6b418ca3f9992bd1bb5465.png)
-
-图 2 只加在非唯一索引上的锁
 
 看到这个例子，你是不是有一种「该锁的不锁，不该锁的乱锁」的感觉？我们来分析一下吧。
 
@@ -95,8 +91,6 @@ select * from t where id>=10 and id<11 for update;
 
 ![图 3 主键索引上范围查询的锁](https://static001.geekbang.org/resource/image/30/80/30b839bf941f109b04f1a36c302aea80.png)
 
-图 3 主键索引上范围查询的锁
-
 现在我们就用前面提到的加锁规则，来分析一下 session A 会加什么锁呢？
 
 1. 开始执行的时候，要找到第一个 id=10 的行，因此本该是 next-key lock(5,10]。 根据优化 1， 主键 id 上的等值条件，退化成行锁，只加了 id=10 这一行的行锁。
@@ -114,8 +108,6 @@ select * from t where id>=10 and id<11 for update;
 
 ![图 4 非唯一索引范围锁](https://static001.geekbang.org/resource/image/73/7a/7381475e9e951628c9fc907f5a57697a.png)
 
-图 4 非唯一索引范围锁
-
 这次 session A 用字段 c 来判断，加锁规则跟案例三唯一的不同是：在第一次用 c=10 定位记录的时候，索引 c 上加了(5,10]这个 next-key lock 后，由于索引 c 是非唯一索引，没有优化规则，也就是说不会蜕变为行锁，因此最终 sesion A 加的锁是，索引 c 上的(5,10] 和(10,15] 这两个 next-key lock。
 
 所以从结果上来看，sesson B 要插入（8,8,8)的这个 insert 语句时就被堵住了。
@@ -127,8 +119,6 @@ select * from t where id>=10 and id<11 for update;
 前面的四个案例，我们已经用到了加锁规则中的两个原则和两个优化，接下来再看一个关于加锁规则中 bug 的案例。
 
 ![图 5 唯一索引范围锁的 bug](https://static001.geekbang.org/resource/image/b1/6d/b105f8c4633e8d3a84e6422b1b1a316d.png)
-
-图 5 唯一索引范围锁的 bug
 
 session A 是一个范围查询，按照原则 1 的话，应该是索引 id 上只加(10,15]这个 next-key lock，并且因为 id 是唯一键，所以循环判断到 id=15 这一行就应该停止了。
 
@@ -152,8 +142,6 @@ insert into t values(30,10,30);
 
 ![图 6 非唯一索引等值的例子](https://static001.geekbang.org/resource/image/c1/59/c1fda36c1502606eb5be3908011ba159.png)
 
-图 6 非唯一索引等值的例子
-
 可以看到，虽然有两个 c=10，但是它们的主键值 id 是不同的（分别是 10 和 30），因此这两个 c=10 的记录之间，也是有间隙的。
 
 图中我画出了索引 c 上的主键 id。为了跟间隙锁的开区间形式进行区别，我用(c=10,id=30)这样的形式，来表示索引上的一行。
@@ -163,8 +151,6 @@ insert into t values(30,10,30);
 这次我们用 delete 语句来验证。注意，delete 语句加锁的逻辑，其实跟 select ... for update 是类似的，也就是我在文章开始总结的两个原则、两个优化和一个bug。
 
 ![图 7 delete 示例](https://static001.geekbang.org/resource/image/b5/78/b55fb0a1cac3500b60e1cf9779d2da78.png)
-
-图 7 delete 示例
 
 这时，session A 在遍历的时候，先访问第一个 c=10 的记录。同样地，根据原则 1，这里加的是(c=5,id=5)到(c=10,id=10)这个 next-key lock。
 
@@ -182,8 +168,6 @@ insert into t values(30,10,30);
 例子 6 也有一个对照案例，场景如下所示：
 
 ![图 9 limit 语句加锁](https://static001.geekbang.org/resource/image/af/2e/afc3a08ae7a254b3251e41b2a6dae02e.png)
-
-图 9 limit 语句加锁
 
 这个例子里，session A 的 delete 语句加了 limit 2。你知道表 t 里 c=10 的记录其实只有两条，因此加不加 limit 2，删除的效果都是一样的，但是加锁的效果却不同。可以看到，session B 的 insert 语句执行通过了，跟案例六的结果不同。
 
@@ -205,8 +189,6 @@ insert into t values(30,10,30);
 你一定会疑惑，这个概念不是一开始就说了吗？不要着急，我们先来看下面这个例子：
 
 ![图 11 案例八的操作序列](https://static001.geekbang.org/resource/image/7b/06/7b911a4c995706e8aa2dd96ff0f36506.png)
-
-图 11 案例八的操作序列
 
 现在，我们按时间顺序来分析一下为什么是这样的结果。
 

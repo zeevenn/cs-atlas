@@ -40,11 +40,7 @@ alter table SUser add index index2(email(6));
 
 ![图 1 email 索引结构](https://static001.geekbang.org/resource/image/d3/b7/d31da662bee595991862c439a5567eb7.jpg)
 
-图 1 email 索引结构
-
 ![图 2 email(6) 索引结构](https://static001.geekbang.org/resource/image/13/42/134583875561de914991fc2e192cf842.jpg)
-
-图 2 email(6) 索引结构
 
 从图中你可以看到，由于 email(6)这个索引结构中每个邮箱字段都只取前 6 个字节（即：zhangs），所以占用的空间会更小，这就是使用前缀索引的优势。
 

@@ -45,8 +45,6 @@ call idata();
 
 ![图 1 union 语句 explain 结果](https://static001.geekbang.org/resource/image/40/4e/402cbdef84eef8f1b42201c6ec4bad4e.png)
 
-图 1 union 语句 explain 结果
-
 可以看到：
 
 * 第二行的 key=PRIMARY，说明第二个子句用到了索引 id。
@@ -65,15 +63,11 @@ call idata();
 
 ![图 2 union 执行流程](https://static001.geekbang.org/resource/image/5d/0e/5d038c1366d375cc997005a5d65c600e.jpg)
 
-图 2 union 执行流程
-
 可以看到，这里的内存临时表起到了暂存数据的作用，而且计算过程还用上了临时表主键 id 的唯一性约束，实现了 union 的语义。
 
 顺便提一下，如果把上面这个语句中的 union 改成 union all 的话，就没有了去重的语义。这样执行的时候，就依次执行子查询，得到的结果直接作为结果集的一部分，发给客户端。因此也就不需要临时表了。
 
 ![图 3 union all 的 explain 结果](https://static001.geekbang.org/resource/image/c1/6d/c1e90d1d7417b484d566b95720fe3f6d.png)
-
-图 3 union all 的 explain 结果
 
 可以看到，第二行的 Extra 字段显示的是 Using index，表示只使用了覆盖索引，没有用临时表了。
 
@@ -88,8 +82,6 @@ select id%10 as m, count(*) as c from t1 group by m;
 这个语句的逻辑是把表 t1 里的数据，按照 id%10 进行分组统计，并按照 m 的结果排序后输出。它的 explain 结果如下：
 
 ![图 4 group by 的 explain 结果](https://static001.geekbang.org/resource/image/3d/98/3d1cb94589b6b3c4bb57b0bdfa385d98.png)
-
-图 4 group by 的 explain 结果
 
 在 Extra 字段里面，我们可以看到三个信息：
 
@@ -109,21 +101,15 @@ select id%10 as m, count(*) as c from t1 group by m;
 
 ![图 5 group by 执行流程](https://static001.geekbang.org/resource/image/03/54/0399382169faf50fc1b354099af71954.jpg)
 
-图 5 group by 执行流程
-
 图中最后一步，对内存临时表的排序，在[第 17 篇文章](https://time.geekbang.org/column/article/73795)中已经有过介绍，我把图贴过来，方便你回顾。
 
 ![图 6 内存临时表排序流程](https://static001.geekbang.org/resource/image/b5/68/b5168d201f5a89de3b424ede2ebf3d68.jpg)
-
-图 6 内存临时表排序流程
 
 其中，临时表的排序过程就是图 6 中虚线框内的过程。
 
 接下来，我们再看一下这条语句的执行结果：
 
 ![图 7 group by 执行结果](https://static001.geekbang.org/resource/image/ae/55/ae6a28d890efc35ee4d07f694068f455.png)
-
-图 7 group by 执行结果
 
 如果你的需求并不需要对结果进行排序，那你可以在 SQL 语句末尾增加 order by null，也就是改成：
 
@@ -134,8 +120,6 @@ select id%10 as m, count(*) as c from t1 group by m order by null;
 这样就跳过了最后排序的阶段，直接从临时表中取数据返回。返回的结果如图 8 所示。
 
 ![图 8 group + order by null 的结果（内存临时表）](https://static001.geekbang.org/resource/image/03/eb/036634e53276eaf8535c3442805dfaeb.png)
-
-图 8 group + order by null 的结果（内存临时表）
 
 由于表 t1 中的 id 值是从 1 开始的，因此返回的结果集中第一行是 id=1；扫描到 id=10 的时候才插入 m=0 这一行，因此结果集里最后一行才是 m=0。
 
@@ -154,8 +138,6 @@ select id%100 as m, count(*) as c from t1 group by m order by null limit 10;
 
 ![图 9 group + order by null 的结果（磁盘临时表）](https://static001.geekbang.org/resource/image/a7/6e/a76381d0f3c947292cc28198901f9e6e.png)
 
-图 9 group + order by null 的结果（磁盘临时表）
-
 如果这个表 t1 的数据量很大，很可能这个查询需要的磁盘临时表就会占用大量的磁盘空间。
 
 ## group by 优化方法 --索引
@@ -171,8 +153,6 @@ group by 的语义逻辑，是统计不同的值出现的个数。但是，由�
 假设，现在有一个类似图 10 的这么一个数据结构，我们来看看 group by 可以怎么做。
 
 ![图 10 group by 算法优化-有序输入](https://static001.geekbang.org/resource/image/5c/19/5c4a581c324c1f6702f9a2c70acddd19.jpg)
-
-图 10 group by 算法优化-有序输入
 
 可以看到，如果可以确保输入的数据是有序的，那么计算 group by 的时候，就只需要从左到右，顺序扫描，依次累加。也就是下面这个过程：
 
@@ -198,8 +178,6 @@ select z, count(*) as c from t1 group by z;
 优化后的 group by 语句的 explain 结果，如下图所示：
 
 ![图 11 group by 优化的 explain 结果](https://static001.geekbang.org/resource/image/c9/b9/c9f88fa42d92cf7dde78fca26c4798b9.png)
-
-图 11 group by 优化的 explain 结果
 
 从 Extra 字段可以看到，这个语句的执行不再需要临时表，也不需要排序了。
 
@@ -236,11 +214,7 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 
 ![图 12 使用 SQL\_BIG\_RESULT 的执行流程图](https://static001.geekbang.org/resource/image/82/6a/8269dc6206a7ef20cb515c23df0b846a.jpg)
 
-图 12 使用 SQL\_BIG\_RESULT 的执行流程图
-
 ![图 13 使用 SQL\_BIG\_RESULT 的 explain 结果](https://static001.geekbang.org/resource/image/83/ec/83b6cd6b3e37dfbf9699cf0ccc0f1bec.png)
-
-图 13 使用 SQL\_BIG\_RESULT 的 explain 结果
 
 从 Extra 字段可以看到，这个语句的执行没有再使用临时表，而是直接用了排序算法。
 

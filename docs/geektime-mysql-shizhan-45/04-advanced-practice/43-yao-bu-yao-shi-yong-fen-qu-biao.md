@@ -26,8 +26,6 @@ insert into t values('2017-4-1',1),('2018-4-1',1);
 
 ![图 1 表 t 的磁盘文件](https://static001.geekbang.org/resource/image/06/f5/06f041129783533de9c75580f9decdf5.png)
 
-图 1 表 t 的磁盘文件
-
 我在表 t 中初始化插入了两行记录，按照定义的分区规则，这两行记录分别落在 p\_2018 和 p\_2019 这两个分区上。
 
 可以看到，这个表包含了一个.frm 文件和 4 个.ibd 文件，每个分区对应一个.ibd 文件。也就是说：
@@ -43,23 +41,17 @@ insert into t values('2017-4-1',1),('2018-4-1',1);
 
 ![图 2 分区表间隙锁示例](https://static001.geekbang.org/resource/image/d2/c7/d28d6ab873bd8337d88812d45b9266c7.png)
 
-图 2 分区表间隙锁示例
-
 这里顺便复习一下，我在[第 21 篇文章](https://time.geekbang.org/column/article/75659)和你介绍的间隙锁加锁规则。
 
 我们初始化表 t 的时候，只插入了两行数据， ftime 的值分别是，‘2017-4-1’ 和’2018-4-1’ 。session A 的 select 语句对索引 ftime 上这两个记录之间的间隙加了锁。如果是一个普通表的话，那么 T1 时刻，在表 t 的 ftime 索引上，间隙和加锁状态应该是图 3 这样的。
 
 ![图 3 普通表的加锁范围](https://static001.geekbang.org/resource/image/27/d2/273c9ca869f5b52621641d73eb6f72d2.jpg)
 
-图 3 普通表的加锁范围
-
 也就是说，‘2017-4-1’ 和’2018-4-1’ 这两个记录之间的间隙是会被锁住的。那么，sesion B 的两条插入语句应该都要进入锁等待状态。
 
 但是，从上面的实验效果可以看出，session B 的第一个 insert 语句是可以执行成功的。这是因为，对于引擎来说，p\_2018 和 p\_2019 是两个不同的表，也就是说 2017-4-1 的下一个记录并不是 2018-4-1，而是 p\_2018 分区的 supremum。所以 T1 时刻，在表 t 的 ftime 索引上，间隙和加锁的状态其实是图 4 这样的：
 
 ![图 4 分区表 t 的加锁范围](https://static001.geekbang.org/resource/image/92/5c/92f63aba0b24adefac7316c75463b95c.jpg)
-
-图 4 分区表 t 的加锁范围
 
 由于分区表的规则，session A 的 select 语句其实只操作了分区 p\_2018，因此加锁范围就是图 4 中深绿色的部分。
 
@@ -69,15 +61,11 @@ insert into t values('2017-4-1',1),('2018-4-1',1);
 
 ![图 5 session B 被锁住信息](https://static001.geekbang.org/resource/image/e3/0f/e3d83d9ba89de9a6f541c9a2f24a3b0f.png)
 
-图 5 session B 被锁住信息
-
 看完 InnoDB 引擎的例子，我们再来一个 MyISAM 分区表的例子。
 
 我首先用 alter table t engine=myisam，把表 t 改成 MyISAM 表；然后，我再用下面这个例子说明，对于 MyISAM 引擎来说，这是 4 个表。
 
 ![图 6 用 MyISAM 表锁验证](https://static001.geekbang.org/resource/image/94/76/941306d4a7193455dcf1cfebf7678876.png)
-
-图 6 用 MyISAM 表锁验证
 
 在 session A 里面，我用 sleep(100)将这条语句的执行时间设置为 100 秒。由于 MyISAM 引擎只支持表锁，所以这条 update 语句会锁住整个表 t 上的读。
 
@@ -103,8 +91,6 @@ insert into t values('2017-4-1',1),('2018-4-1',1);
 
 ![图 7 insert 语句报错](https://static001.geekbang.org/resource/image/ab/e7/abfa0054ec43d97fb18ba3c1c8829ae7.png)
 
-图 7 insert 语句报错
-
 可以看到，这条 insert 语句，明显只需要访问一个分区，但语句却无法执行。
 
 这时，你一定从表名猜到了，这个表我用的是 MyISAM 引擎。是的，因为使用 InnoDB 引擎的话，并不会出现这个问题。
@@ -127,11 +113,7 @@ MySQL 从 5.7.17 开始，将 MyISAM 分区表标记为即将弃用(deprecated)�
 
 ![图 8 分区表的 MDL 锁](https://static001.geekbang.org/resource/image/0e/81/0eca5a3190161e59ea58493915bd5e81.png)
 
-图 8 分区表的 MDL 锁
-
 ![图 9 show processlist 结果](https://static001.geekbang.org/resource/image/af/a8/afe662f5e051a2ceb96a87624a589aa8.png)
-
-图 9 show processlist 结果
 
 可以看到，虽然 session B 只需要操作 p\_2107 这个分区，但是由于 session A 持有整个表 t 的 MDL 锁，就导致了 session B 的 alter 语句被堵住。
 

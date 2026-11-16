@@ -59,8 +59,6 @@ select * from t1 where a>=1 and a<=100;
 
 ![图 1 基本回表流程](https://static001.geekbang.org/resource/image/17/11/1761edbd7734276ae0a213af3cdd3311.jpg)
 
-图 1 基本回表流程
-
 如果随着 a 的值递增顺序查询的话，id 的值就变成随机的，那么就会出现随机访问，性能相对较差。虽然按行查这个机制不能改，但是调整查询的顺序，还是能够加速的。
 
 **因为大多数的数据都是按照主键递增顺序插入得到的，所以我们可以认为，如果按照主键的递增顺序查询的话，对磁盘的读比较接近顺序读，能够提升读性能。**
@@ -79,11 +77,7 @@ select * from t1 where a>=1 and a<=100;
 
 ![图 2 MRR 执行流程](https://static001.geekbang.org/resource/image/d5/c7/d502fbaea7cac6f815c626b078da86c7.jpg)
 
-图 2 MRR 执行流程
-
 ![图 3 MRR 执行流程的 explain 结果](https://static001.geekbang.org/resource/image/a5/32/a513d07ebaf1ae044d44391c89bc6432.png)
-
-图 3 MRR 执行流程的 explain 结果
 
 从图 3 的 explain 结果中，我们可以看到 Extra 字段多了 Using MRR，表示的是用上了 MRR 优化。而且，由于我们在 read\_rnd\_buffer 中按照 id 做了排序，所以最后得到的结果集也是按照主键 id 递增顺序的，也就是与图 1 结果集中行的顺序相反。
 
@@ -99,8 +93,6 @@ select * from t1 where a>=1 and a<=100;
 
 ![图 4 Index Nested-Loop Join 流程图](https://static001.geekbang.org/resource/image/10/3d/10e14e8b9691ac6337d457172b641a3d.jpg)
 
-图 4 Index Nested-Loop Join 流程图
-
 NLJ 算法执行的逻辑是：从驱动表 t1，一行行地取出 a 的值，再到被驱动表 t2 去做 join。也就是说，对于表 t2 来说，每次都是匹配一个值。这时，MRR 的优势就用不上了。
 
 那怎么才能一次性地多传些值给表 t2 呢？方法就是，从表 t1 里一次性地多拿些行出来，一起传给表 t2。
@@ -112,8 +104,6 @@ NLJ 算法执行的逻辑是：从驱动表 t1，一行行地取出 a 的值，�
 如图 5 所示，是上面的 NLJ 算法优化后的 BKA 算法的流程。
 
 ![图 5 Batched Key Acess 流程](https://static001.geekbang.org/resource/image/31/7e/31d85666542b9cb0b47a447a8593a47e.jpg)
-
-图 5 Batched Key Acess 流程
 
 图中，我在 join\_buffer 中放入的数据是 P1\~P100，表示的是只会取查询需要的字段。当然，如果 join buffer 放不下 P1\~P100 的所有数据，就会把这 100 行数据分成多段执行上图的流程。
 
@@ -182,11 +172,7 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 
 ![图 6 explain 结果](https://static001.geekbang.org/resource/image/92/60/92fbdbfc35da3040396401250cb33f60.png)
 
-图 6 explain 结果
-
 ![图 7 语句执行时间](https://static001.geekbang.org/resource/image/d8/9c/d862bc3e88305688df2c354a4b26809c.png)
-
-图 7 语句执行时间
 
 可以看到，explain 结果里 Extra 字段显示使用了 BNL 算法。在我的测试环境里，这条语句需要执行 1 分 11 秒。
 
@@ -209,8 +195,6 @@ select * from t1 join temp_t on (t1.b=temp_t.b);
 图 8 就是这个语句序列的执行效果。
 
 ![图 8 使用临时表的执行效果](https://static001.geekbang.org/resource/image/a8/c7/a80cdffe8173fa0fd8969ed976ac6ac7.png)
-
-图 8 使用临时表的执行效果
 
 可以看到，整个过程 3 个语句执行时间的总和还不到 1 秒，相比于前面的 1 分 11 秒，性能得到了大幅提升。接下来，我们一起看一下这个过程的消耗：
 

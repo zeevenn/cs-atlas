@@ -24,8 +24,6 @@ title: "12 为什么我的 MySQL 会「抖」一下？"
 
 ![图 1 「孔乙己赊账」更新和 flush 过程](https://static001.geekbang.org/resource/image/34/da/349cfab9e4f5d2a75e07b2132a301fda.jpeg)
 
-图 1 「孔乙己赊账」更新和 flush 过程
-
 回到文章开头的问题，你不难想象，平时执行很快的更新操作，其实就是在写内存和日志，而 MySQL 偶尔「抖」一下的那个瞬间，可能就是在刷脏页（flush）。
 
 那么，什么情况会引发数据库的 flush 过程呢？
@@ -36,8 +34,6 @@ title: "12 为什么我的 MySQL 会「抖」一下？"
   这个场景，对应的就是 InnoDB 的 redo log 写满了。这时候系统会停止所有更新操作，把 checkpoint 往前推进，redo log 留出空间可以继续写。我在第二讲画了一个 redo log 的示意图，这里我改成环形，便于大家理解。
 
 ![图 2 redo log 状态图](https://static001.geekbang.org/resource/image/a2/e5/a25bdbbfc2cfc5d5e20690547fe7f2e5.jpg)
-
-图 2 redo log 状态图
 
 checkpoint 可不是随便往前修改一下位置就可以的。比如图 2 中，把 checkpoint 位置从 CP 推进到 CP’，就需要将两个点之间的日志（浅绿色部分），对应的所有脏页都 flush 到磁盘上。之后，图中从 write pos 到 CP’ 之间就是可以再写入的 redo log 的区域。
 
@@ -119,8 +115,6 @@ InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkp
 上述的计算流程比较抽象，不容易理解，所以我画了一个简单的流程图。图中的 F1、F2 就是上面我们通过脏页比例和 redo log 写入速度算出来的两个值。
 
 ![图 3 InnoDB 刷脏页速度策略](https://static001.geekbang.org/resource/image/cc/74/cc44c1d080141aa50df6a91067475374.png)
-
-图 3 InnoDB 刷脏页速度策略
 
 现在你知道了，InnoDB 会在后台刷脏页，而刷脏页的过程是要将内存页写入磁盘。所以，无论是你的查询语句在需要内存的时候可能要求淘汰一个脏页，还是由于刷脏页的逻辑会占用 IO 资源并可能影响到了你的更新语句，都可能是造成你从业务端感知到 MySQL「抖」了一下的原因。
 

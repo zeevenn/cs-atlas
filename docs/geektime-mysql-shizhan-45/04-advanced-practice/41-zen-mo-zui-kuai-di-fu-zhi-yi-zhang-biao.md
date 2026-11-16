@@ -56,8 +56,6 @@ mysqldump -h$host -P$port -u$user --add-locks=0 --no-create-info --single-transa
 
 ![图 1 mysqldump 输出文件的部分结果](https://static001.geekbang.org/resource/image/8a/de/8acdcefcaf5c9940570bf7e8f73dbdde.png)
 
-图 1 mysqldump 输出文件的部分结果
-
 可以看到，一条 INSERT 语句里面会包含多个 value 对，这是为了后续用这个文件来写入数据的时候，执行速度可以更快。
 
 如果你希望生成的文件中一条 INSERT 语句只插入一行数据的话，可以在执行 mysqldump 命令时，加上参数–skip-extended-insert。
@@ -125,8 +123,6 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 ![图 2 load data 的同步流程](https://static001.geekbang.org/resource/image/3a/fd/3a6790bc933af5ac45a75deba0f52cfd.jpg)
 
-图 2 load data 的同步流程
-
 注意，这里备库执行的 load data 语句里面，多了一个 `local`。它的意思是「将执行这条命令的客户端所在机器的本地文件/tmp/SQL\_LOAD\_MB-1-0 的内容，加载到目标表 db2.t 中」。
 
 也就是说， **load data 命令有两种用法** ：
@@ -166,8 +162,6 @@ mysqldump -h$host -P$port -u$user ---single-transaction  --set-gtid-purged=OFF d
 至此，拷贝表数据的操作就完成了。这个流程的执行过程图如下：
 
 ![图 3 物理拷贝表](https://static001.geekbang.org/resource/image/ba/a7/ba1ced43eed4a55d49435c062fee21a7.jpg)
-
-图 3 物理拷贝表
 
 关于拷贝表的这个流程，有以下几个注意点：
 

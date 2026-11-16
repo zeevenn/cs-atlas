@@ -23,8 +23,6 @@ insert into t2 values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9),(0,0)
 
 ![图 1 两个查询结果-0 的位置](https://static001.geekbang.org/resource/image/3f/e6/3fb1100b6e3390357d4efff0ba4765e6.png)
 
-图 1 两个查询结果-0 的位置
-
 可以看到，内存表 t1 的返回结果里面 0 在最后一行，而 InnoDB 表 t2 的返回结果里 0 在第一行。
 
 出现这个区别的原因，要从这两个引擎的主键索引的组织方式说起。
@@ -33,15 +31,11 @@ insert into t2 values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9),(0,0)
 
 ![图 2 表 t2 的数据组织](https://static001.geekbang.org/resource/image/4e/8d/4e29e4f9db55ace6ab09161c68ad8c8d.jpg)
 
-图 2 表 t2 的数据组织
-
 主键索引上的值是有序存储的。在执行 select \*的时候，就会按照叶子节点从左到右扫描，所以得到的结果里，0 就出现在第一行。
 
 与 InnoDB 引擎不同，Memory 引擎的数据和索引是分开的。我们来看一下表 t1 中的数据内容。
 
 ![图 3 表 t1 的数据组织](https://static001.geekbang.org/resource/image/dd/84/dde03e92074cecba4154d30cd16a9684.jpg)
-
-图 3 表 t1 的数据组织
 
 可以看到，内存表的数据部分以数组的方式单独存放，而主键 id 索引里，存的是每个数据的位置。主键 id 是 hash 索引，可以看到索引上的 key 并不是有序的。
 
@@ -90,15 +84,11 @@ alter table t1 add index a_btree_index using btree (id);
 
 ![图 4 表 t1 的数据组织--增加 B-Tree 索引](https://static001.geekbang.org/resource/image/17/e3/1788deca56cb83c114d8353c92e3bde3.jpg)
 
-图 4 表 t1 的数据组织--增加 B-Tree 索引
-
 新增的这个 B-Tree 索引你看着就眼熟了，这跟 InnoDB 的 b+ 树索引组织形式类似。
 
 作为对比，你可以看一下这下面这两个语句的输出：
 
 ![图 5 使用 B-Tree 和 hash 索引查询返回结果对比](https://static001.geekbang.org/resource/image/a8/8a/a85808fcccab24911d257d720550328a.png)
-
-图 5 使用 B-Tree 和 hash 索引查询返回结果对比
 
 可以看到，执行 select \* from t1 where id<5 的时候，优化器会选择 B-Tree 索引，所以返回结果是 0 到 4。 使用 force index 强行使用主键 id 这个索引，id=0 这一行就在结果集的最末尾了。
 
@@ -119,13 +109,9 @@ alter table t1 add index a_btree_index using btree (id);
 
 ![图 6 内存表的表锁--复现步骤](https://static001.geekbang.org/resource/image/f2/29/f216e2d707559ed2ca98fbe21e509f29.png)
 
-图 6 内存表的表锁--复现步骤
-
 在这个执行序列里，session A 的 update 语句要执行 50 秒，在这个语句执行期间 session B 的查询会进入锁等待状态。session C 的 show processlist 结果输出如下：
 
 ![图 7 内存表的表锁--结果](https://static001.geekbang.org/resource/image/14/16/14d88076dad6db573f0b66f2c17df916.png)
-
-图 7 内存表的表锁--结果
 
 跟行锁比起来，表锁对并发访问的支持不够好。所以，内存表的锁粒度问题，决定了它在处理并发事务的时候，性能也不会太好。
 
@@ -140,8 +126,6 @@ alter table t1 add index a_btree_index using btree (id);
 **我们先看看 M-S 架构下，使用内存表存在的问题。**
 
 ![图 8 M-S 基本架构](https://static001.geekbang.org/resource/image/5b/e9/5b910e4c0f1afa219aeecd1f291c95e9.jpg)
-
-图 8 M-S 基本架构
 
 我们来看一下下面这个时序：
 
@@ -160,8 +144,6 @@ alter table t1 add index a_btree_index using btree (id);
 **如果你使用是如图 9 所示的双 M 结构的话：**
 
 ![图 9 双 M 结构](https://static001.geekbang.org/resource/image/40/57/4089c9c1f92ce61d2ed779fd0932ba57.jpg)
-
-图 9 双 M 结构
 
 在备库重启的时候，备库 binlog 里的 delete 语句就会传到主库，然后把主库内存表的内容删除。这样你在使用的时候就会发现，主库的内存表数据突然被清空了。
 
@@ -205,8 +187,6 @@ select * from t1 join temp_t on (t1.b=temp_t.b);
 ```
 
 ![图 10 使用内存临时表的执行效果](https://static001.geekbang.org/resource/image/a4/92/a468ba6d14ea225623074b6255b99f92.png)
-
-图 10 使用内存临时表的执行效果
 
 可以看到，不论是导入数据的时间，还是执行 join 的时间，使用内存临时表的速度都比使用 InnoDB 临时表要更快一些。
 

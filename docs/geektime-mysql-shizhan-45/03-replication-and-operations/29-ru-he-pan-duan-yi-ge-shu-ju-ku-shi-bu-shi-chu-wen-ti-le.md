@@ -30,8 +30,6 @@ CREATE TABLE `t` (
 
 ![图 1 查询 blocked](https://static001.geekbang.org/resource/image/35/55/35076dd3d0a0d44d22b76d2a29885255.png)
 
-图 1 查询 blocked
-
 我们设置 innodb\_thread\_concurrency 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
 
 这里，我把 innodb\_thread\_concurrency 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于执行状态，以此来模拟大查询。
@@ -63,8 +61,6 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 下图 2 显示的就是这个状态。
 
 ![图 2 系统锁死状态（假设等行锁的语句占用并发计数）](https://static001.geekbang.org/resource/image/32/1d/3206ea18b8a24b546515b1b95dc4a11d.png)
-
-图 2 系统锁死状态（假设等行锁的语句占用并发计数）
 
 这时候 InnoDB 不能响应任何请求，整个系统被锁死。而且，由于所有线程都处于等待状态，此时占用的 CPU 却是 0，而这明显不合理。所以，我们说 InnoDB 在设计时，遇到进程进入锁等待的情况时，将并发线程的计数减 1 的设计，是合理而且是必要的。
 
@@ -150,8 +146,6 @@ insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on du
 file\_summary\_by\_event\_name 表里有很多行数据，我们先来看看 event\_name='wait/io/file/innodb/innodb\_log\_file’ 这一行。
 
 ![图 3 performance\_schema.file\_summary\_by\_event\_name 的一行](https://static001.geekbang.org/resource/image/75/dd/752ccfe43b4eab155be17401838c62dd.png)
-
-图 3 performance\_schema.file\_summary\_by\_event\_name 的一行
 
 图中这一行表示统计的是 redo log 的写入时间，第一列 EVENT\_NAME 表示统计的类型。
 

@@ -14,8 +14,6 @@ title: "27 主库出问题了，从库怎么办？"
 
 ![图 1 一主多从基本结构](https://static001.geekbang.org/resource/image/aa/79/aadb3b956d1ffc13ac46515a7d619e79.png)
 
-图 1 一主多从基本结构
-
 图中，虚线箭头表示的是主备关系，也就是 A 和 A’ 互为主备， 从库 B、C、D 指向的是主库 A。一主多从的设置，一般用于读写分离，主库负责所有的写入和一部分读，其他的读请求则由从库分担。
 
 今天我们要讨论的就是，在一主多从架构下，主库故障后的主备切换问题。
@@ -23,8 +21,6 @@ title: "27 主库出问题了，从库怎么办？"
 如图 2 所示，就是主库发生故障，主备切换后的结果。
 
 ![图 2 一主多从基本结构--主备切换](https://static001.geekbang.org/resource/image/00/53/0014f97423bd75235a9187f492fb2453.png)
-
-图 2 一主多从基本结构--主备切换
 
 相比于一主一备的切换流程，一主多从结构在切换完成后，A’ 会成为新的主库，从库 B、C、D 也要改接到 A’。正是由于多了从库 B、C、D 重新指向的这个过程，所以主备切换的复杂性也相应增加了。
 
@@ -73,8 +69,6 @@ mysqlbinlog File --stop-datetime=T --start-datetime=T
 ```
 
 ![图 3 mysqlbinlog 部分输出结果](https://static001.geekbang.org/resource/image/34/dd/3471dfe4aebcccfaec0523a08cdd0ddd.png)
-
-图 3 mysqlbinlog 部分输出结果
 
 图中，end\_log\_pos 后面的值 `123`，表示的就是 A’ 这个实例，在 T 时刻写入新的 binlog 的位置。然后，我们就可以把 123 这个值作为$master\_log\_pos ，用在节点 B 的 change master 命令里。
 
@@ -174,8 +168,6 @@ insert into t values(1,1);
 
 ![图 4 初始化数据的 binlog](https://static001.geekbang.org/resource/image/28/c2/28a5cab0079fb12fd5abecd92b3324c2.png)
 
-图 4 初始化数据的 binlog
-
 可以看到，事务的 BEGIN 之前有一条 SET @@SESSION.GTID\_NEXT 命令。这时，如果实例 X 有从库，那么将 CREATE TABLE 和 insert 语句的 binlog 同步过去执行的话，执行事务之前就会先执行这两个 SET 命令， 这样被加入从库的 GTID 集合的，就是图中的这两个 GTID。
 
 假设，现在这个实例 X 是另外一个实例 Y 的从库，并且此时在实例 Y 上执行了下面这条插入语句：
@@ -201,8 +193,6 @@ start slave;
 其中，前三条语句的作用，是通过提交一个空事务，把这个 GTID 加到实例 X 的 GTID 集合中。如图 5 所示，就是执行完这个空事务之后的 show master status 的结果。
 
 ![图 5 show master status 结果](https://static001.geekbang.org/resource/image/c8/57/c8d3299ece7d583a3ecd1557851ed157.png)
-
-图 5 show master status 结果
 
 可以看到实例 X 的 Executed\_Gtid\_set 里面，已经加入了这个 GTID。
 

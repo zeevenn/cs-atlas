@@ -21,8 +21,6 @@ insert into t(id, k) values(1,1),(2,2);
 
 ![图 1 事务 A、B、C 的执行流程](https://static001.geekbang.org/resource/image/82/d6/823acf76e53c0bdba7beab45e72e90d6.png)
 
-图 1 事务 A、B、C 的执行流程
-
 这里，我们需要注意的是事务的启动时机。
 
 begin/start transaction 命令并不是一个事务的起点，在执行到它们之后的第一个操作 InnoDB 表的语句，事务才真正启动。如果你想要马上启动一个事务，可以使用 start transaction with consistent snapshot 这个命令。
@@ -62,8 +60,6 @@ InnoDB 里面每个事务有一个唯一的事务 ID，叫作 transaction id。�
 
 ![图 2 行状态变更图](https://static001.geekbang.org/resource/image/68/ed/68d08d277a6f7926a41cc5541d3dfced.png)
 
-图 2 行状态变更图
-
 图中虚线框里是同一行数据的 4 个版本，当前最新版本是 V4，k 的值是 22，它是被 transaction id 为 25 的事务更新的，因此它的 row trx\_id 也是 25。
 
 你可能会问，前面的文章不是说，语句更新会生成 undo log（回滚日志）吗？那么， **undo log 在哪呢？**
@@ -89,8 +85,6 @@ InnoDB 里面每个事务有一个唯一的事务 ID，叫作 transaction id。�
 这个视图数组把所有的 row trx\_id 分成了几种不同的情况。
 
 ![图 3 数据版本可见性规则](https://static001.geekbang.org/resource/image/88/5e/882114aaf55861832b4270d44507695e.png)
-
-图 3 数据版本可见性规则
 
 这样，对于当前事务的启动瞬间来说，一个数据版本的 row trx\_id，有以下几种可能：
 
@@ -119,8 +113,6 @@ InnoDB 里面每个事务有一个唯一的事务 ID，叫作 transaction id。�
 为了简化分析，我先把其他干扰语句去掉，只画出跟事务 A 查询逻辑有关的操作：
 
 ![图 4 事务 A 查询数据逻辑图](https://static001.geekbang.org/resource/image/94/49/9416c310e406519b7460437cb0c5c149.png)
-
-图 4 事务 A 查询数据逻辑图
 
 从图中可以看到，第一个有效更新是事务 C，把数据从(1,1)改成了(1,2)。这时候，这个数据的最新版本的 row trx\_id 是 102，而 90 这个版本已经成为了历史版本。
 
@@ -160,8 +152,6 @@ InnoDB 里面每个事务有一个唯一的事务 ID，叫作 transaction id。�
 
 ![图 5 事务 B 更新逻辑图](https://static001.geekbang.org/resource/image/86/9f/86ad7e8abe7bf16505b97718d8ac149f.png)
 
-图 5 事务 B 更新逻辑图
-
 是的，如果事务 B 在更新之前查询一次数据，这个查询返回的 k 的值确实是 1。
 
 但是，当它要去更新数据的时候，就不能再在历史版本上更新了，否则事务 C 的更新就丢失了。因此，事务 B 此时的 set k=k+1 是在（1,2）的基础上进行的操作。
@@ -185,15 +175,11 @@ select k from t where id=1 for update;
 
 ![图 6 事务 A、B、C'的执行流程](https://static001.geekbang.org/resource/image/cd/6e/cda2a0d7decb61e59dddc83ac51efb6e.png)
 
-图 6 事务 A、B、C'的执行流程
-
 事务 C’ 的不同是，更新后并没有马上提交，在它提交前，事务 B 的更新语句先发起了。前面说过了，虽然事务 C’ 还没提交，但是(1,2)这个版本也已经生成了，并且是当前的最新版本。那么，事务 B 的更新语句会怎么处理呢？
 
 这时候，我们在上一篇文章中提到的两阶段锁协议就要上场了。事务 C’ 没提交，也就是说(1,2)这个版本上的写锁还没释放。而事务 B 是当前读，必须要读最新版本，而且必须加锁，因此就被锁住了，必须等到事务 C’ 释放这个锁，才能继续它的当前读。
 
 ![图 7 事务 B 更新逻辑图（配合事务 C'）](https://static001.geekbang.org/resource/image/54/92/540967ea905e8b63630e496786d84c92.png)
-
-图 7 事务 B 更新逻辑图（配合事务 C'）
 
 到这里，我们把一致性读、当前读和行锁就串起来了。
 
@@ -213,8 +199,6 @@ select k from t where id=1 for update;
 下面是读提交时的状态图，可以看到这两个查询语句的创建视图数组的时机发生了变化，就是图中的 read view 框。（注意：这里，我们用的还是事务 C 的逻辑直接提交，而不是事务 C’）
 
 ![图 8 读提交隔离级别下的事务状态图](https://static001.geekbang.org/resource/image/ed/6e/ed4b8d03287df67ecca53b5b4830ee6e.png)
-
-图 8 读提交隔离级别下的事务状态图
 
 这时，事务 A 的查询语句的视图数组是在执行这个语句的时候创建的，时序上(1,2)、(1,3)的生成时间都在创建这个视图数组的时刻之前。但是，在这个时刻：
 

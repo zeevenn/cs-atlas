@@ -24,8 +24,6 @@ title: "15 答疑文章（一）：日志和索引相关问题"
 
 ![图 1 两阶段提交示意图](https://static001.geekbang.org/resource/image/ee/2a/ee9af616e05e4b853eba27048351f62a.jpg)
 
-图 1 两阶段提交示意图
-
 这里，我要先和你解释一个误会式的问题。有同学在评论区问到，这个图不是一个 update 语句的执行流程吗，怎么还会调用 commit 语句？
 
 他产生这个疑问的原因，是把 **两个 `commit` 的概念** 混淆了：
@@ -100,8 +98,6 @@ InnoDB 接入了 MySQL 后，发现既然 binlog 没有崩溃恢复的能力，�
 而如果说 **实现上的原因** 的话，就有很多了。就按照问题中说的，只用 binlog 来实现崩溃恢复的流程，我画了一张示意图，这里就没有 redo log 了。
 
 ![图 2 只用 binlog 支持崩溃恢复](https://static001.geekbang.org/resource/image/eb/63/eb838b87e9c20fa00aca50ef154f2a63.jpg)
-
-图 2 只用 binlog 支持崩溃恢复
 
 这样的流程下，binlog 还是不能支持崩溃恢复的。我说一个不支持的点吧：binlog 没有能力恢复数据页。
 

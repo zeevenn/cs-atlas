@@ -43,8 +43,6 @@ insert into t2(c,d) select c,d from t;
 
 ![图 1 并发 insert 场景](https://static001.geekbang.org/resource/image/33/86/33e513ee55d5700dc67f32bcdafb9386.png)
 
-图 1 并发 insert 场景
-
 实际的执行效果是，如果 session B 先执行，由于这个语句对表 t 主键索引加了(-∞,1]这个 next-key lock，会在语句执行完成后，才允许 session A 的 insert 语句执行。
 
 但如果没有锁的话，就可能出现 session B 的 insert 语句先执行，但是后写入 binlog 的情况。于是，在 binlog\_format=statement 的情况下，binlog 里面就记录了这样的语句序列：
@@ -78,8 +76,6 @@ insert into t2(c,d)  (select c+1, d from t force index(c) order by c desc limit 
 
 ![图 2 慢查询日志--将数据插入表 t2](https://static001.geekbang.org/resource/image/3e/74/3efdf8256309a44e23d93089459eda74.png)
 
-图 2 慢查询日志--将数据插入表 t2
-
 通过这个慢查询日志，我们看到 Rows\_examined=1，正好验证了执行这条语句的扫描行数为 1。
 
 那么，如果我们是要把这样的一行数据插入到表 t 中的话：
@@ -94,8 +90,6 @@ insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1
 
 ![图 3 慢查询日志--将数据插入表 t](https://static001.geekbang.org/resource/image/6f/18/6f90b04c09188bff11dae6e788abb918.png)
 
-图 3 慢查询日志--将数据插入表 t
-
 可以看到，这时候的 Rows\_examined 的值是 5。
 
 我在前面的文章中提到过，希望你都能够学会用 explain 的结果来「脑补」整条语句的执行过程。今天，我们就来一起试试。
@@ -103,8 +97,6 @@ insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1
 如图 4 所示就是这条语句的 explain 结果。
 
 ![图 4 explain 结果](https://static001.geekbang.org/resource/image/d7/2a/d7270781ee3f216325b73bd53999b82a.png)
-
-图 4 explain 结果
 
 从 Extra 字段可以看到 `Using temporary` 字样，表示这个语句用到了临时表。也就是说，执行过程中，需要把表 t 的内容读出来，写入临时表。
 
@@ -115,8 +107,6 @@ insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1
 从另一个角度考虑的话，我们可以看看 InnoDB 扫描了多少行。如图 5 所示，是在执行这个语句前后查看 Innodb\_rows\_read 的结果。
 
 ![图 5 查看 Innodb\_rows\_read 变化](https://static001.geekbang.org/resource/image/48/d7/489281d8029e8f60979cb7c4494010d7.png)
-
-图 5 查看 Innodb\_rows\_read 变化
 
 可以看到，这个语句执行前后，Innodb\_rows\_read 的值增加了 4。因为默认临时表是使用 Memory 引擎的，所以这 4 行查的都是表 t，也就是说对表 t 做了全表扫描。
 
@@ -149,8 +139,6 @@ drop table temp_t;
 
 ![图 6 唯一键冲突加锁](https://static001.geekbang.org/resource/image/83/ca/83fb2d877932941b230d6b5be8cca6ca.png)
 
-图 6 唯一键冲突加锁
-
 这个例子也是在可重复读（repeatable read）隔离级别下执行的。可以看到，session B 要执行的 insert 语句进入了锁等待状态。
 
 也就是说，session A 执行的 insert 语句，发生唯一键冲突的时候，并不只是简单地报错返回，还在冲突的索引上加了锁。我们前面说过，一个 next-key lock 就是由它右边界的值定义的。这时候，session A 持有索引 c 上的(5,10]共享 next-key lock（读锁）。
@@ -167,8 +155,6 @@ drop table temp_t;
 
 ![图 7 唯一键冲突--死锁](https://static001.geekbang.org/resource/image/63/2d/63658eb26e7a03b49f123fceed94cd2d.png)
 
-图 7 唯一键冲突--死锁
-
 在 session A 执行 rollback 语句回滚的时候，session C 几乎同时发现死锁并返回。
 
 这个死锁产生的逻辑是这样的：
@@ -180,8 +166,6 @@ drop table temp_t;
 这个流程的状态变化图如下所示。
 
 ![图 8 状态变化图--死锁](https://static001.geekbang.org/resource/image/3e/b8/3e0bf1a1241931c14360e73fd10032b8.jpg)
-
-图 8 状态变化图--死锁
 
 ## insert into … on duplicate key update
 
@@ -200,8 +184,6 @@ insert into t values(11,10,10) on duplicate key update d=100;
 现在表 t 里面已经有了(1,1,1)和(2,2,2)这两行，我们再来看看下面这个语句执行的效果：
 
 ![图 9 两个唯一键同时冲突](https://static001.geekbang.org/resource/image/5f/02/5f384d6671c87a60e1ec7e490447d702.png)
-
-图 9 两个唯一键同时冲突
 
 可以看到，主键 id 是先判断的，MySQL 认为这个语句跟 id=2 这一行冲突，所以修改的是 id=2 的行。
 

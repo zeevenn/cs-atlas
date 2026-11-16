@@ -50,8 +50,6 @@ select word from words order by rand() limit 3;
 
 ![图 1 使用 explain 命令查看语句的执行情况](https://static001.geekbang.org/resource/image/59/50/59a4fb0165b7ce1184e41f2d061ce350.png)
 
-图 1 使用 explain 命令查看语句的执行情况
-
 Extra 字段显示 Using temporary，表示的是需要使用临时表；Using filesort，表示的是需要执行排序操作。
 
 因此这个 Extra 的意思就是，需要临时表，并且需要在临时表上排序。
@@ -60,11 +58,7 @@ Extra 字段显示 Using temporary，表示的是需要使用临时表；Using f
 
 ![图 2 全字段排序](https://static001.geekbang.org/resource/image/6c/72/6c821828cddf46670f9d56e126e3e772.jpg)
 
-图 2 全字段排序
-
 ![图 3 rowid 排序](https://static001.geekbang.org/resource/image/dc/6d/dc92b67721171206a302eb679c83e86d.jpg)
-
-图 3 rowid 排序
 
 然后，我再问你一个问题，你觉得对于临时内存表的排序来说，它会选择哪一种算法呢？回顾一下上一篇文章的一个结论： **对于 InnoDB 表来说** ，执行全字段排序会减少磁盘访问，因此会被优先选择。
 
@@ -97,8 +91,6 @@ select word from words order by rand() limit 3;
 现在，我来把完整的排序执行流程图画出来。
 
 ![图 4 随机排序完整流程图 1](https://static001.geekbang.org/resource/image/2a/fc/2abe849faa7dcad0189b61238b849ffc.png)
-
-图 4 随机排序完整流程图 1
 
 图中的 pos 就是位置信息，你可能会觉得奇怪，这里的位置信息是个什么概念？在上一篇文章中，我们对 InnoDB 表排序的时候，明明用的还是 ID 字段。
 
@@ -144,8 +136,6 @@ SELECT * FROM `information_schema`.`OPTIMIZER_TRACE`\G
 
 ![图 5 OPTIMIZER\_TRACE 部分结果](https://static001.geekbang.org/resource/image/78/ab/78d2db9a4fdba81feadccf6e878b4aab.png)
 
-图 5 OPTIMIZER\_TRACE 部分结果
-
 然后，我们来看一下这次 OPTIMIZER\_TRACE 的结果。
 
 因为将 max\_length\_for\_sort\_data 设置成 16，小于 word 字段的长度定义，所以我们看到 sort\_mode 里面显示的是 rowid 排序，这个是符合预期的，参与排序的是随机值 R 字段和 rowid 字段组成的行。
@@ -170,8 +160,6 @@ SELECT * FROM `information_schema`.`OPTIMIZER_TRACE`\G
 这里我简单画了一个优先队列排序过程的示意图。
 
 ![图 6 优先队列排序算法示例](https://static001.geekbang.org/resource/image/e9/97/e9c29cb20bf9668deba8981e444f6897.png)
-
-图 6 优先队列排序算法示例
 
 图 6 是模拟 6 个(R,rowid)行，通过优先队列排序找到最小的三个 R 值的行的过程。整个排序过程中，为了最快地拿到当前堆的最大值，总是保持最大值在堆顶，因此这是一个最大堆。
 

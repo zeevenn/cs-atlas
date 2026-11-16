@@ -22,8 +22,6 @@ title: "23 MySQL 是怎么保证数据不丢的？"
 
 ![图 1 binlog 写盘状态](https://static001.geekbang.org/resource/image/9e/3e/9ed86644d5f39efb0efec595abb92e3e.png)
 
-图 1 binlog 写盘状态
-
 可以看到，每个线程有自己 binlog cache，但是共用同一份 binlog 文件。
 
 * 图中的 write，指的就是指把日志写入到文件系统的 page cache，并没有把数据持久化到磁盘，所以速度比较快。
@@ -58,8 +56,6 @@ write 和 fsync 的时机，是由参数 sync\_binlog 控制的：
 这个问题，要从 redo log 可能存在的三种状态说起。这三种状态，对应的就是图 2 中的三个颜色块。
 
 ![图 2 MySQL redo log 存储状态](https://static001.geekbang.org/resource/image/9d/d4/9d057f61d3962407f413deebc80526d4.png)
-
-图 2 MySQL redo log 存储状态
 
 这三种状态分别是：
 
@@ -104,8 +100,6 @@ LSN 也会写到 InnoDB 的数据页中，来确保数据页不会被多次执�
 
 ![图 3 redo log 组提交](https://static001.geekbang.org/resource/image/93/cc/933fdc052c6339de2aa3bf3f65b188cc.png)
 
-图 3 redo log 组提交
-
 从图中可以看到，
 
 1. trx1 是第一个到达的，会被选为这组的 leader；
@@ -121,8 +115,6 @@ LSN 也会写到 InnoDB 的数据页中，来确保数据页不会被多次执�
 
 ![图 4 两阶段提交](https://static001.geekbang.org/resource/image/98/51/98b3b4ff7b36d6d72e38029b86870551.png)
 
-图 4 两阶段提交
-
 图中，我把「写 binlog」当成一个动作。但实际上，写 binlog 是分成两步的：
 
 1. 先把 binlog 从 binlog cache 中写到磁盘上的 binlog 文件；
@@ -131,8 +123,6 @@ LSN 也会写到 InnoDB 的数据页中，来确保数据页不会被多次执�
 MySQL 为了让组提交的效果更好，把 redo log 做 fsync 的时间拖到了步骤 1 之后。也就是说，上面的图变成了这样：
 
 ![图 5 两阶段提交细化](https://static001.geekbang.org/resource/image/5a/28/5ae7d074c34bc5bd55c82781de670c28.png)
-
-图 5 两阶段提交细化
 
 这么一来，binlog 也可以组提交了。在执行图 5 中第 4 步把 binlog fsync 到磁盘时，如果有多个事务的 binlog 已经写完了，也是一起持久化的，这样也可以减少 IOPS 的消耗。
 

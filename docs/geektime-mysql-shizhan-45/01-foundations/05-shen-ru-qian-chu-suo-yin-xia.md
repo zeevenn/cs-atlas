@@ -25,8 +25,6 @@ insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,
 
 ![图 1 InnoDB 的索引组织结构](https://static001.geekbang.org/resource/image/dc/8d/dcda101051f28502bd5c4402b292e38d.png)
 
-图 1 InnoDB 的索引组织结构
-
 现在，我们一起来看看这条 SQL 查询语句的执行流程：
 
 1. 在 k 索引树上找到 k=3 的记录，取得 ID = 300；
@@ -82,8 +80,6 @@ CREATE TABLE `tuser` (
 
 ![图 2 （name，age）索引示意图](https://static001.geekbang.org/resource/image/89/70/89f74c631110cfbc83298ef27dcd6370.jpg)
 
-图 2 （name，age）索引示意图
-
 可以看到，索引项是按照索引定义里面出现的字段顺序排序的。
 
 当你的逻辑需求是查到所有名字是 `张三` 的人时，可以快速定位到 ID4，然后向后遍历得到所有需要的结果。
@@ -126,11 +122,7 @@ select * from tuser where name like '张%' and age=10 and ismale=1;
 
 ![图 3 无索引下推执行流程](https://static001.geekbang.org/resource/image/b3/ac/b32aa8b1f75611e0759e52f5915539ac.jpg)
 
-图 3 无索引下推执行流程
-
 ![图 4 索引下推执行流程](https://static001.geekbang.org/resource/image/76/1b/76e385f3df5a694cc4238c7b65acfe1b.jpg)
-
-图 4 索引下推执行流程
 
 在图 3 和 4 这两个图里面，每一个虚线箭头表示回表一次。
 

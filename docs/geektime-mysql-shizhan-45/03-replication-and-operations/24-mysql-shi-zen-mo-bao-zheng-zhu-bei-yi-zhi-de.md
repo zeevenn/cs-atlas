@@ -18,8 +18,6 @@ title: "24 MySQL 是怎么保证主备一致的？"
 
 ![图 1 MySQL 主备切换流程](https://static001.geekbang.org/resource/image/fd/10/fd75a2b37ae6ca709b7f16fe060c2c10.png)
 
-图 1 MySQL 主备切换流程
-
 在状态 1 中，客户端的读写都直接访问节点 A，而节点 B 是 A 的备库，只是将 A 的更新都同步过来，到本地执行。这样可以保持节点 B 和 A 的数据是相同的。
 
 当需要切换的时候，就切成状态 2。这时候客户端读写访问的都是节点 B，而节点 A 是 B 的备库。
@@ -37,8 +35,6 @@ title: "24 MySQL 是怎么保证主备一致的？"
 接下来，我们再看看 **节点 A 到 B 这条线的内部流程是什么样的** 。图 2 中画出的就是一个 update 语句在节点 A 执行，然后同步到节点 B 的完整流程图。
 
 ![图 2 主备流程图](https://static001.geekbang.org/resource/image/a6/a3/a66c154c1bc51e071dd2cc8c1d6ca6a3.png)
-
-图 2 主备流程图
 
 图 2 中，包含了我在上一篇文章中讲到的 binlog 和 redo log 的写入机制相关的内容，可以看到：主库接收到客户端的更新请求后，执行内部事务的更新逻辑，同时写 binlog。
 
@@ -95,8 +91,6 @@ show binlog events in 'master.000001';
 
 ![图 3 statement 格式 binlog 示例](https://static001.geekbang.org/resource/image/b9/31/b9818f73cd7d38a96ddcb75350b52931.png)
 
-图 3 statement 格式 binlog 示例
-
 现在，我们来看一下图 3 的输出结果。
 
 * 第一行 SET @@SESSION.GTID\_NEXT='ANONYMOUS’ 你可以先忽略，后面文章我们会在介绍主备切换的时候再提到；
@@ -108,8 +102,6 @@ show binlog events in 'master.000001';
 为了说明 statement 和 row 格式的区别，我们来看一下这条 delete 命令的执行效果图：
 
 ![图 4 delete 执行 warnings](https://static001.geekbang.org/resource/image/96/2b/96c2be9c0fcbff66883118526b26652b.png)
-
-图 4 delete 执行 warnings
 
 可以看到，运行这条 delete 命令产生了一个 warning，原因是当前 binlog 设置的是 statement 格式，并且语句中有 limit，所以这个命令可能是 unsafe 的。
 
@@ -124,8 +116,6 @@ show binlog events in 'master.000001';
 
 ![图 5 row 格式 binlog 示例](https://static001.geekbang.org/resource/image/d6/26/d67a38db154afff610ae3bb64e266826.png)
 
-图 5 row 格式 binlog 示例
-
 可以看到，与 statement 格式的 binlog 相比，前后的 BEGIN 和 COMMIT 是一样的。但是，row 格式的 binlog 里没有了 SQL 语句的原文，而是替换成了两个 event：Table\_map 和 Delete\_rows。
 
 1. Table\_map event，用于说明接下来要操作的表是 test 库的表 t;
@@ -138,8 +128,6 @@ mysqlbinlog  -vv data/master.000001 --start-position=8900;
 ```
 
 ![图 6 row 格式 binlog 示例的详细信息](https://static001.geekbang.org/resource/image/c3/c2/c342cf480d23b05d30a294b114cebfc2.png)
-
-图 6 row 格式 binlog 示例的详细信息
 
 从这个图中，我们可以看到以下几个信息：
 
@@ -190,15 +178,11 @@ insert into t values(10,10, now());
 
 ![图 7 mixed 格式和 now()](https://static001.geekbang.org/resource/image/01/ef/0150301698979255a6f27711c35e9eef.png)
 
-图 7 mixed 格式和 now()
-
 可以看到，MySQL 用的居然是 statement 格式。你一定会奇怪，如果这个 binlog 过了 1 分钟才传给备库的话，那主备的数据不就不一致了吗？
 
 接下来，我们再用 mysqlbinlog 工具来看看：
 
 ![图 8 TIMESTAMP 命令](https://static001.geekbang.org/resource/image/1a/41/1ad3a4c4b9a71955edba5195757dd041.png)
-
-图 8 TIMESTAMP 命令
 
 从图中的结果可以看到，原来 binlog 在记录 event 的时候，多记了一条命令：SET TIMESTAMP=1546103491。它用 SET TIMESTAMP 命令约定了接下来的 now()函数的返回时间。
 
@@ -223,8 +207,6 @@ mysqlbinlog master.000001  --start-position=2738 --stop-position=2973 | mysql -h
 因此，我们可以认为正常情况下主备的数据是一致的。也就是说，图 1 中 A、B 两个节点的内容是一致的。其实，图 1 中我画的是 M-S 结构，但实际生产上使用比较多的是双 M 结构，也就是图 9 所示的主备切换流程。
 
 ![图 9 MySQL 主备切换流程--双 M 结构](https://static001.geekbang.org/resource/image/20/56/20ad4e163115198dc6cf372d5116c956.png)
-
-图 9 MySQL 主备切换流程--双 M 结构
 
 对比图 9 和图 1，你可以发现，双 M 结构和 M-S 结构，其实区别只是多了一条线，即：节点 A 和 B 之间总是互为主备关系。这样在切换的时候就不用再修改主备关系。
 

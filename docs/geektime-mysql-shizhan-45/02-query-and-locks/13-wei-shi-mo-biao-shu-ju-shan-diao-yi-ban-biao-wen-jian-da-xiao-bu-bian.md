@@ -35,8 +35,6 @@ title: "13 为什么表数据删掉一半，表文件大小不变？"
 
 ![图 1 B+ 树索引示意图](https://static001.geekbang.org/resource/image/f0/c8/f0b1e4ac610bcb5c5922d0b18563f3c8.png)
 
-图 1 B+ 树索引示意图
-
 假设，我们要删掉 R4 这个记录，InnoDB 引擎只会把 R4 这个记录标记为删除。如果之后要再插入一个 ID 在 300 和 600 之间的记录时，可能会复用这个位置。但是，磁盘文件的大小并不会缩小。
 
 现在，你已经知道了 InnoDB 的数据是按页存储的，那么如果我们删掉了一个数据页上的所有记录，会怎么样？
@@ -63,8 +61,6 @@ title: "13 为什么表数据删掉一半，表文件大小不变？"
 
 ![图 2 插入数据导致页分裂](https://static001.geekbang.org/resource/image/80/ea/8083f05a4a4c0372833a6e01d5a8e6ea.png)
 
-图 2 插入数据导致页分裂
-
 可以看到，由于 page A 满了，再插入一个 ID 是 550 的数据时，就不得不再申请一个新的页面 page B 来保存数据了。页分裂完成后，page A 的末尾就留下了空洞（注意：实际上，可能不止 1 个记录的位置是空洞）。
 
 另外，更新索引上的值，可以理解为删除一个旧的值，再插入一个新值。不难理解，这也是会造成空洞的。
@@ -85,8 +81,6 @@ title: "13 为什么表数据删掉一半，表文件大小不变？"
 
 ![图 3 改锁表 DDL](https://static001.geekbang.org/resource/image/02/cd/02e083adaec6e1191f54992f7bc13dcd.png)
 
-图 3 改锁表 DDL
-
 显然，花时间最多的步骤是往临时表插入数据的过程，如果在这个过程中，有新的数据要写入到表 A 的话，就会造成数据丢失。因此，在整个 DDL 过程中，表 A 中不能有更新。也就是说，这个 DDL 不是 Online 的。
 
 而在 **MySQL 5.6 版本开始引入的 Online DDL，对这个操作流程做了优化。**
@@ -100,8 +94,6 @@ title: "13 为什么表数据删掉一半，表文件大小不变？"
 5. 用临时文件替换表 A 的数据文件。
 
 ![图 4 Online DDL](https://static001.geekbang.org/resource/image/2d/f0/2d1cfbbeb013b851a56390d38b5321f0.png)
-
-图 4 Online DDL
 
 可以看到，与图 3 过程的不同之处在于，由于日志文件记录和重放操作这个功能的存在，这个方案在重建表的过程中，允许对表 A 做增删改操作。这也就是 Online DDL 名字的来源。
 
@@ -193,8 +185,6 @@ alter table t add FULLTEXT(field_name);
 每次事务提交都要写 redo log，如果设置太小，很快就会被写满，也就是下面这个图的状态，这个环将很快被写满，write pos 一直追着 CP。
 
 ![这时候系统不得不停止所有更新，去推进 checkpoint。](https://static001.geekbang.org/resource/image/a2/e5/a25bdbbfc2cfc5d5e20690547fe7f2e5.jpg)
-
-这时候系统不得不停止所有更新，去推进 checkpoint。
 
 这时，你看到的现象就是 **磁盘压力很小，但是数据库出现间歇性的性能下跌。**
 

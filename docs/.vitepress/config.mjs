@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import imageFigures from 'markdown-it-image-figures'
 import { groups } from './sidebars/mysql-how-it-works.mjs'
 import { geektimeGroups } from './sidebars/geektime-mysql-shizhan-45.mjs'
 import { tokenize } from './search.mjs'
@@ -18,9 +19,10 @@ export default defineConfig({
   lastUpdated: true,
   markdown: {
     config(md) {
+      md.use(imageFigures, { figcaption: 'alt' })
       md.core.ruler.before('block', 'frontmatter-title', (state) => {
         const { title, layout = 'doc' } = state.env.frontmatter || {}
-        if (title && layout === 'doc') {
+        if (title && layout === 'doc' && !state.inlineMode) {
           state.src = `# ${title}\n\n${state.src}`
         }
       })

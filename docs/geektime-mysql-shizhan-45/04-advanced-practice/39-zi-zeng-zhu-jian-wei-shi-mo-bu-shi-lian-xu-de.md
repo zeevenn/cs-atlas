@@ -28,8 +28,6 @@ CREATE TABLE `t` (
 
 ![图 1 自动生成的 AUTO\_INCREMENT 值](https://static001.geekbang.org/resource/image/cb/ff/cb2637cada0201b18650f56875e94fff.png)
 
-图 1 自动生成的 AUTO\_INCREMENT 值
-
 可以看到，表定义里面出现了一个 AUTO\_INCREMENT=2，表示下一次插入数据时，如果需要自动生成自增值，会生成 id=2。
 
 其实，这个输出结果容易引起这样的误解：自增值是保存在表结构定义里的。实际上， **表的结构定义存放在后缀名为.frm 的文件中，但是并不会保存自增值。**
@@ -92,8 +90,6 @@ insert into t values(null, 1, 1);
 
 ![图 2 insert(null, 1,1)唯一键冲突](https://static001.geekbang.org/resource/image/f1/d3/f16d89a6e7ad6e2cde13b32bb2292dd3.jpg)
 
-图 2 insert(null, 1,1)唯一键冲突
-
 可以看到，这个表的自增值改成 3，是在真正执行插入数据的操作之前。这个语句真正执行的时候，因为碰到唯一键 c 冲突，所以 id=2 这一行并没有插入成功，但也没有将自增值再改回去。
 
 所以，在这之后，再插入新的数据行时，拿到的自增 id 就是 3。也就是说，出现了自增主键不连续的情况。
@@ -101,8 +97,6 @@ insert into t values(null, 1, 1);
 如图 3 所示就是完整的演示结果。
 
 ![图 3 一个自增主键 id 不连续的复现步骤](https://static001.geekbang.org/resource/image/77/26/77b87820b649692a555f19b562d5d926.png)
-
-图 3 一个自增主键 id 不连续的复现步骤
 
 可以看到，这个操作序列复现了一个自增主键 id 不连续的现场(没有 id=2 的行）。可见， **唯一键冲突是导致自增主键 id 不连续的第一种原因。**
 
@@ -162,8 +156,6 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb\_autoinc\_lock
 我们一起来看一下这个场景：
 
 ![图 4 批量插入数据的自增锁](https://static001.geekbang.org/resource/image/e0/df/e0a69e151277de54a8262657e4ec89df.png)
-
-图 4 批量插入数据的自增锁
 
 在这个例子里，我往表 t1 中插入了 4 行数据，然后创建了一个相同结构的表 t2，然后两个 session 同时执行向表 t2 中插入数据的操作。
 

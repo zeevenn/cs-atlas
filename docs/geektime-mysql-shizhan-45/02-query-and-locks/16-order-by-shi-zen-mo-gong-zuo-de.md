@@ -36,15 +36,11 @@ select city,name,age from t where city='杭州' order by name limit 1000  ;
 
 ![图 1 使用 explain 命令查看语句的执行情况](https://static001.geekbang.org/resource/image/82/03/826579b63225def812330ef6c344a303.png)
 
-图 1 使用 explain 命令查看语句的执行情况
-
 Extra 这个字段中的 `Using filesort` 表示的就是需要排序，MySQL 会给每个线程分配一块内存用于排序，称为 sort\_buffer。
 
 为了说明这个 SQL 查询语句的执行过程，我们先来看一下 city 这个索引的示意图。
 
 ![图 2 city 字段的索引示意图](https://static001.geekbang.org/resource/image/ff/1e/ffb5e4153d6e02977cb2d164e6b6bc1e.jpg)
-
-图 2 city 字段的索引示意图
 
 从图中可以看到，满足 city='杭州’条件的行，是从 ID\_X 到 ID\_(X+N)的这些记录。
 
@@ -61,8 +57,6 @@ Extra 这个字段中的 `Using filesort` 表示的就是需要排序，MySQL �
 我们暂且把这个排序过程，称为全字段排序，执行流程的示意图如下所示，下一篇文章中我们还会用到这个排序。
 
 ![图 3 全字段排序](https://static001.geekbang.org/resource/image/6c/72/6c821828cddf46670f9d56e126e3e772.jpg)
-
-图 3 全字段排序
 
 图中按 name 排序这个动作，可能在内存中完成，也可能需要使用外部排序，这取决于排序所需的内存和参数 sort\_buffer\_size。
 
@@ -93,8 +87,6 @@ select @b-@a;
 这个方法是通过查看 OPTIMIZER\_TRACE 的结果来确认的，你可以从 number\_of\_tmp\_files 中看到是否使用了临时文件。
 
 ![图 4 全排序的 OPTIMIZER\_TRACE 部分结果](https://static001.geekbang.org/resource/image/89/95/89baf99cdeefe90a22370e1d6f5e6495.png)
-
-图 4 全排序的 OPTIMIZER\_TRACE 部分结果
 
 number\_of\_tmp\_files 表示的是，排序过程中使用的临时文件数。你一定奇怪，为什么需要 12 个文件？内存放不下时，就需要使用外部排序，外部排序一般使用归并排序算法。可以这么简单理解， **MySQL 将需要排序的数据分成 12 份，每一份单独排序后存在这些临时文件中。然后把这 12 个有序文件再合并成一个有序的大文件。**
 
@@ -148,8 +140,6 @@ city、name、age 这三个字段的定义总长度是 36，我把 max\_length\_
 
 ![图 5 rowid 排序](https://static001.geekbang.org/resource/image/dc/6d/dc92b67721171206a302eb679c83e86d.jpg)
 
-图 5 rowid 排序
-
 对比图 3 的全字段排序流程图你会发现，rowid 排序多访问了一次表 t 的主键索引，就是步骤 7。
 
 需要说明的是，最后的结果集是一个逻辑概念，实际上 MySQL 服务端从排序后的 sort\_buffer 中依次取出 id，然后到原表查到 city、name 和 age 这三个字段的结果，不需要在服务端再耗费内存存储结果，是直接返回给客户端的。
@@ -163,8 +153,6 @@ city、name、age 这三个字段的定义总长度是 36，我把 max\_length\_
 因为这时候除了排序过程外，在排序完成后，还要根据 id 去原表取值。由于语句是 limit 1000，因此会多读 1000 行。
 
 ![图 6 rowid 排序的 OPTIMIZER\_TRACE 部分输出](https://static001.geekbang.org/resource/image/27/9b/27f164804d1a4689718291be5d10f89b.png)
-
-图 6 rowid 排序的 OPTIMIZER\_TRACE 部分输出
 
 从 OPTIMIZER\_TRACE 的结果中，你还能看到另外两个信息也变了。
 
@@ -203,8 +191,6 @@ alter table t add index city_user(city, name);
 
 ![图 7 city 和 name 联合索引示意图](https://static001.geekbang.org/resource/image/28/ca/2881ed13d2fbc4fc96d02368229b9cca.jpg)
 
-图 7 city 和 name 联合索引示意图
-
 在这个索引里面，我们依然可以用树搜索的方式定位到第一个满足 city='杭州’的记录，并且额外确保了，接下来按顺序取下一条记录的遍历过程中，只要 city 的值是杭州，name 的值就一定是有序的。
 
 这样整个查询过程的流程就变成了：
@@ -216,13 +202,9 @@ alter table t add index city_user(city, name);
 
 ![图 8 引入(city,name)联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/3f/92/3f590c3a14f9236f2d8e1e2cb9686692.jpg)
 
-图 8 引入(city,name)联合索引后，查询语句的执行计划
-
 可以看到，这个查询过程不需要临时表，也不需要排序。接下来，我们用 explain 的结果来印证一下。
 
 ![图 9 引入(city,name)联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/fc/8a/fc53de303811ba3c46d344595743358a.png)
-
-图 9 引入(city,name)联合索引后，查询语句的执行计划
 
 从图中可以看到，Extra 字段中没有 Using filesort 了，也就是不需要排序了。而且由于(city,name)这个联合索引本身有序，所以这个查询也不用把 4000 行全都读一遍，只要找到满足条件的前 1000 条记录就可以退出了。也就是说，在我们这个例子里，只需要扫描 1000 次。
 
@@ -246,13 +228,9 @@ alter table t add index city_user_age(city, name, age);
 
 ![图 10 引入(city,name,age)联合索引后，查询语句的执行流程](https://static001.geekbang.org/resource/image/df/d6/df4b8e445a59c53df1f2e0f115f02cd6.jpg)
 
-图 10 引入(city,name,age)联合索引后，查询语句的执行流程
-
 然后，我们再来看看 explain 的结果。
 
 ![图 11 引入(city,name,age)联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/9e/23/9e40b7b8f0e3f81126a9171cc22e3423.png)
-
-图 11 引入(city,name,age)联合索引后，查询语句的执行计划
 
 可以看到，Extra 字段里面多了 `Using index`，表示的就是使用了覆盖索引，性能上会快很多。
 
@@ -292,8 +270,6 @@ select * from t where city in ('杭州',"苏州") order by name limit 100;
 
 ![图 12 锁验证方式](https://static001.geekbang.org/resource/image/6d/90/6d9d8837560d01b57d252c470157ea90.png)
 
-图 12 锁验证方式
-
 session B 的 update 语句被 blocked 了，加锁这个动作是 InnoDB 才能做的，所以排除选项 1。
 
 第二个选项是，MySQL 调用了 InnoDB 引擎提供的接口，但是引擎发现值与原来相同，不更新，直接返回。有没有这种可能呢？这里我用一个可见性实验来确认。
@@ -301,8 +277,6 @@ session B 的 update 语句被 blocked 了，加锁这个动作是 InnoDB 才能
 假设当前表里的值是(1,2)。
 
 ![图 13 可见性验证方式](https://static001.geekbang.org/resource/image/44/96/441682b64a3f5dd50f35b12ca4b87c96.png)
-
-图 13 可见性验证方式
 
 session A 的第二个 select 语句是一致性读（快照读)，它是不能看见 session B 的更新的。
 
@@ -318,8 +292,6 @@ session A 的第二个 select 语句是一致性读（快照读)，它是不能�
 
 ![图 14 可见性验证方式--对照](https://static001.geekbang.org/resource/image/63/c1/63dd6df32dacdb827d256e5acb9837c1.png)
 
-图 14 可见性验证方式--对照
-
 **补充说明：**
 
 上面我们的验证结果都是在 binlog\_format=statement 格式下进行的。
@@ -333,8 +305,6 @@ session A 的第二个 select 语句是一致性读（快照读)，它是不能�
 对应的代码如图 15 所示。这是 MySQL 5.6 版本引入的，在此之前我没有看过。所以，特此说明。
 
 ![图 15 binlog\_row\_image=FULL 读字段逻辑](https://static001.geekbang.org/resource/image/d4/89/d413b9235d56c62f9829750a68b06b89.png)
-
-图 15 binlog\_row\_image=FULL 读字段逻辑
 
 类似的，@mahonebags 同学提到了 timestamp 字段的问题。结论是：如果表中有 timestamp 字段而且设置了自动更新的话，那么更新别的字段的时候，MySQL 会读入所有涉及的字段，这样通过判断，就会发现不需要修改。
 

@@ -32,8 +32,6 @@ select name from CUser where id_card = 'xxxxxxxyyyyyyzzzzz';
 
 ![图 1 InnoDB 的索引组织结构](https://static001.geekbang.org/resource/image/1e/46/1ed9536031d6698570ea175a7b7f9a46.png)
 
-图 1 InnoDB 的索引组织结构
-
 接下来，我们就从这两种索引对查询语句和更新语句的性能影响来进行分析。
 
 ## 查询过程
@@ -131,8 +129,6 @@ insert into t(id,k) values(id1,k1),(id2,k2);
 
 ![图 2 带 change buffer 的更新过程](https://static001.geekbang.org/resource/image/98/a3/980a2b786f0ea7adabef2e64fb4c4ca3.png)
 
-图 2 带 change buffer 的更新过程
-
 分析这条更新语句，你会发现它涉及了四个部分：内存、redo log（ib\_log\_fileX）、 数据表空间（t.ibd）、系统表空间（ibdata1）。
 
 这条更新语句做了如下的操作（按照图中的数字顺序）：
@@ -152,8 +148,6 @@ insert into t(id,k) values(id1,k1),(id2,k2);
 如果读语句发生在更新语句后不久，内存中的数据都还在，那么此时的这两个读操作就与系统表空间（ibdata1）和 redo log（ib\_log\_fileX）无关了。所以，我在图中就没画出这两部分。
 
 ![图 3 带 change buffer 的读过程](https://static001.geekbang.org/resource/image/6d/8e/6dc743577af1dbcbb8550bddbfc5f98e.png)
-
-图 3 带 change buffer 的读过程
 
 从图中可以看到：
 

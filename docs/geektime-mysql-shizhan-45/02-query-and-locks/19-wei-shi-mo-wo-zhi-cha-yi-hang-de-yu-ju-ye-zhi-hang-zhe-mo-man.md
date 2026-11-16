@@ -46,8 +46,6 @@ select * from t where id=1;
 
 ![图 1 查询长时间不返回](https://static001.geekbang.org/resource/image/87/2a/8707b79d5ed906950749f5266014f22a.png)
 
-图 1 查询长时间不返回
-
 一般碰到这种情况的话，大概率是表 t 被锁住了。接下来分析原因的时候，一般都是首先执行一下 show processlist 命令，看看当前语句处于什么状态。
 
 然后我们再针对每种状态，去分析它们产生的原因、如何复现，以及如何处理。
@@ -57,8 +55,6 @@ select * from t where id=1;
 如图 2 所示，就是使用 show processlist 命令查看 Waiting for table metadata lock 的示意图。
 
 ![图 2 Waiting for table metadata lock 状态示意图](https://static001.geekbang.org/resource/image/50/28/5008d7e9e22be88a9c80916df4f4b328.png)
-
-图 2 Waiting for table metadata lock 状态示意图
 
 出现 **这个状态表示的是，现在有一个线程正在表 t 上请求或者持有 MDL 写锁，把 select 语句堵住了。**
 
@@ -78,8 +74,6 @@ session A 通过 lock table 命令持有表 t 的 MDL 写锁，而 session B 的
 通过查询 sys.schema\_table\_lock\_waits 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
 
 ![图 4 查获加表锁的线程 id](https://static001.geekbang.org/resource/image/74/01/74fb24ba3826e3831eeeff1670990c01.png)
-
-图 4 查获加表锁的线程 id
 
 ## 等 flush
 
@@ -116,15 +110,11 @@ flush tables with read lock;
 
 ![图 6 Waiting for table flush 的复现步骤](https://static001.geekbang.org/resource/image/2b/9c/2bbc77cfdb118b0d9ef3fdd679d0a69c.png)
 
-图 6 Waiting for table flush 的复现步骤
-
 在 session A 中，我故意每行都调用一次 sleep(1)，这样这个语句默认要执行 10 万秒，在这期间表 t 一直是被 session A打开着。然后，session B 的 flush tables t 命令再要去关闭表 t，就需要等 session A 的查询结束。这样，session C 要再次查询的话，就会被 flush 命令堵住了。
 
 图 7 是这个复现步骤的 show processlist 结果。这个例子的排查也很简单，你看到这个 show processlist 的结果，肯定就知道应该怎么做了。
 
 ![图 7 Waiting for table flush 的 show processlist 结果](https://static001.geekbang.org/resource/image/39/7e/398407014180be4146c2d088fc07357e.png)
-
-图 7 Waiting for table flush 的 show processlist 结果
 
 ## 等行锁
 
@@ -142,11 +132,7 @@ select * from t where id=1 lock in share mode;
 
 ![图 8 行锁复现](https://static001.geekbang.org/resource/image/3e/75/3e68326b967701c59770612183277475.png)
 
-图 8 行锁复现
-
 ![图 9 行锁 show processlist 现场](https://static001.geekbang.org/resource/image/3c/8f/3c266e23fc307283aa94923ecbbc738f.png)
-
-图 9 行锁 show processlist 现场
 
 显然，session A 启动了事务，占有写锁，还不提交，是导致 session B 被堵住的原因。
 
@@ -159,8 +145,6 @@ select * from t sys.innodb_lock_waits where locked_table=`'test'.'t'`\G
 ```
 
 ![图 10 通过 sys.innodb\_lock\_waits 查行锁](https://static001.geekbang.org/resource/image/d8/18/d8603aeb4eaad3326699c13c46379118.png)
-
-图 10 通过 sys.innodb\_lock\_waits 查行锁
 
 可以看到，这个信息很全，4 号线程是造成堵塞的罪魁祸首。而干掉这个罪魁祸首的方式，就是 KILL QUERY 4 或 KILL 4。
 
@@ -184,8 +168,6 @@ select * from t where c=50000 limit 1;
 
 ![图 11 全表扫描 5 万行的 slow log](https://static001.geekbang.org/resource/image/d8/3c/d8b2b5f97c60ae4fc4a03c616847503c.png)
 
-图 11 全表扫描 5 万行的 slow log
-
 Rows\_examined 显示扫描了 50000 行。你可能会说，不是很慢呀，11.5 毫秒就返回了，我们线上一般都配置超过 1 秒才算慢查询。但你要记住： **坏查询不一定是慢查询** 。我们这个例子里面只有 10 万行记录，数据量大起来的话，执行时间就线性涨上去了。
 
 扫描行数多，所以执行慢，这个很好理解。
@@ -202,15 +184,11 @@ select * from t where id=1；
 
 ![图 12 扫描一行却执行得很慢](https://static001.geekbang.org/resource/image/66/46/66f26bb885401e8e460451ff6b0c0746.png)
 
-图 12 扫描一行却执行得很慢
-
 是不是有点奇怪呢，这些时间都花在哪里了？
 
 如果我把这个 slow log 的截图再往下拉一点，你可以看到下一个语句，select \* from t where id=1 lock in share mode，执行时扫描行数也是 1 行，执行时间是 0.2 毫秒。
 
 ![图 13 加上 lock in share mode 的 slow log](https://static001.geekbang.org/resource/image/bd/d2/bde83e269d9fa185b27900c8aa8137d2.png)
-
-图 13 加上 lock in share mode 的 slow log
 
 看上去是不是更奇怪了？按理说 lock in share mode 还要加锁，时间应该更长才对啊。
 
@@ -218,21 +196,15 @@ select * from t where id=1；
 
 ![图 14 两个语句的输出结果](https://static001.geekbang.org/resource/image/1f/1c/1fbb84bb392b6bfa93786fe032690b1c.png)
 
-图 14 两个语句的输出结果
-
 第一个语句的查询结果里 c=1，带 lock in share mode 的语句返回的是 c=1000001。看到这里应该有更多的同学知道原因了。如果你还是没有头绪的话，也别着急。我先跟你说明一下复现步骤，再分析原因。
 
 ![图 15 复现步骤](https://static001.geekbang.org/resource/image/84/ff/84667a3449dc846e393142600ee7a2ff.png)
-
-图 15 复现步骤
 
 你看到了，session A 先用 start transaction with consistent snapshot 命令启动了一个事务，之后 session B 才开始执行 update 语句。
 
 session B 执行完 100 万次 update 语句后，id=1 这一行处于什么状态呢？你可以从图 16 中找到答案。
 
 ![图 16 id=1 的数据状态](https://static001.geekbang.org/resource/image/46/8c/46bb9f5e27854678bfcaeaf0c3b8a98c.png)
-
-图 16 id=1 的数据状态
 
 session B 更新完 100 万次，生成了 100 万个回滚日志(undo log)。
 

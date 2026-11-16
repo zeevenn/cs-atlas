@@ -45,8 +45,6 @@ select * from a left join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q2*/
 
 ![图 1 两个 join 的查询结果](https://static001.geekbang.org/resource/image/87/bd/871f890532349781fdc4a4287e9f91bd.png)
 
-图 1 两个 join 的查询结果
-
 可以看到：
 
 * 语句 Q1 返回的数据集是 6 行，表 a 中即使没有满足匹配条件的记录，查询结果中也会返回一行，并将表 b 的各个字段值填成 NULL。
@@ -57,8 +55,6 @@ select * from a left join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q2*/
 我们先一起看看语句 Q1 的 explain 结果：
 
 ![图 2 Q1 的 explain 结果](https://static001.geekbang.org/resource/image/b7/17/b7f27917ceb0be90ef7b201f2794c817.png)
-
-图 2 Q1 的 explain 结果
 
 可以看到，这个结果符合我们的预期：
 
@@ -75,15 +71,11 @@ select * from a left join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q2*/
 
 ![图 3 left join -BNL 算法](https://static001.geekbang.org/resource/image/8f/d7/8fd4b4b179fb84caaecece84b6406ad7.jpg)
 
-图 3 left join -BNL 算法
-
 可以看到，这条语句确实是以表 a 为驱动表，而且从执行效果看，也和使用 straight\_join 是一样的。
 
 你可能会想，语句 Q2 的查询结果里面少了最后两行数据，是不是就是把上面流程中的步骤 3 去掉呢？我们还是先看一下语句 Q2 的 expain 结果吧。
 
 ![图 4 Q2 的 explain 结果](https://static001.geekbang.org/resource/image/f5/9c/f5712c56dc84d331990409a5c313ea9c.png)
-
-图 4 Q2 的 explain 结果
 
 这里先和你说一句题外话，专栏马上就结束了，我也和你一起根据 explain 结果「脑补」了很多次一条语句的执行流程了，所以我希望你已经具备了这个能力。今天，我们再一起分析一次 SQL 语句的 explain 结果。
 
@@ -103,8 +95,6 @@ select * from a left join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q2*/
 
 ![图 5 Q2 的改写结果](https://static001.geekbang.org/resource/image/d7/ab/d74878e7469edb8b713a18c6158530ab.png)
 
-图 5 Q2 的改写结果
-
 这个例子说明，即使我们在 SQL 语句中写成 left join，执行过程还是有可能不是从左到右连接的。也就是说， **使用 left join 时，左边的表不一定是驱动表。**
 
 这样看来， **如果需要 left join 的语义，就不能把被驱动表的字段放在 where 条件里面做等值判断或不等值判断，必须都写在 on 里面。** 那如果是 join 语句呢？
@@ -119,8 +109,6 @@ select * from a join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q4*/
 我们再使用一次看 explain 和 show warnings 的方法，看看优化器是怎么做的。
 
 ![图 6 join 语句改写](https://static001.geekbang.org/resource/image/d9/f5/d9952e4c2150bc649c7f2977e6ea80f5.png)
-
-图 6 join 语句改写
 
 可以看到，这两条语句都被改写成：
 
@@ -206,8 +194,6 @@ insert into t values(null);
 ```
 
 ![图 7 insert 语句的 binlog](https://static001.geekbang.org/resource/image/b5/25/b55b2167aa301d899ccc86a00b496b25.png)
-
-图 7 insert 语句的 binlog
 
 可以看到，在 insert 语句之前，还有一句 SET INSERT\_ID=1。这条命令的意思是，这个线程里下一次需要用到自增值的时候，不论当前表的自增值是多少，固定用 1 这个值。
 

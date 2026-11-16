@@ -24,6 +24,37 @@
   background: white;
 }
 
+.vp-doc figure {
+  margin: 24px 0;
+}
+
+.vp-doc figure img {
+  margin: 0 auto;
+}
+
+.vp-doc figcaption {
+  margin-top: 12px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.medium-zoom-overlay {
+  z-index: 100;
+}
+
+.medium-zoom-image--opened {
+  z-index: 101;
+  background: white;
+}
+
+.medium-zoom-image:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 4px;
+}
+
 .vp-doc :where(h1, h2, h3) {
   text-wrap: pretty;
 }

@@ -26,8 +26,6 @@ update T set c=c+1 where ID=2;
 
 ![MySQL 的逻辑架构图](https://static001.geekbang.org/resource/image/0d/d9/0d2070e8f84c4801adbfa03bda1f98d9.png)
 
-MySQL 的逻辑架构图
-
 你执行语句前要先连接数据库，这是连接器的工作。
 
 前面我们说过，在一个表上有更新的时候，跟这个表有关的查询缓存会失效，所以这条语句就会把表 T 上所有缓存结果都清空。这也就是我们一般不建议使用查询缓存的原因。
@@ -94,8 +92,6 @@ write pos 和 checkpoint 之间的是「粉板」上还空着的部分，可以�
 这里我给出这个 update 语句的执行流程图，图中浅色框表示是在 InnoDB 内部执行的，深色框表示是在执行器中执行的。
 
 ![update 语句执行流程](https://static001.geekbang.org/resource/image/2e/be/2e5bff4910ec189fe1ee6e2ecc7b4bbe.png)
-
-update 语句执行流程
 
 你可能注意到了，最后三步看上去有点「绕」，将 redo log 的写入拆成了两个步骤：prepare 和 commit，这就是两阶段提交。
 

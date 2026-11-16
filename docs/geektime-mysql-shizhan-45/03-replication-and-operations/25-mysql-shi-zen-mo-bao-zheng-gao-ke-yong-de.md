@@ -14,8 +14,6 @@ title: "25 MySQL 是怎么保证高可用的？"
 
 ![图 1 MySQL 主备切换流程--双 M 结构](https://static001.geekbang.org/resource/image/89/cc/89290bbcf454ff9a3dc5de42a85a69cc.png)
 
-图 1 MySQL 主备切换流程--双 M 结构
-
 ## 主备延迟
 
 主备切换可能是一个主动运维动作，比如软件升级、主库所在机器按计划下线等，也可能是被动操作，比如主库所在机器掉电。
@@ -110,8 +108,6 @@ seconds\_behind\_master 的计算方法是这样的：
 
 ![图 2 MySQL 可靠性优先主备切换流程](https://static001.geekbang.org/resource/image/54/4a/54f4c7c31e6f0f807c2ab77f78c8844a.png)
 
-图 2 MySQL 可靠性优先主备切换流程
-
 备注：图中的 SBM，是 seconds\_behind\_master 参数的简写。
 
 可以看到，这个切换流程中是有不可用时间的。因为在步骤 2 之后，主库 A 和备库 B 都处于 readonly 状态，也就是说这时系统处于不可写状态，直到步骤 5 完成后才能恢复。
@@ -153,8 +149,6 @@ insert into t(c) values(5);
 
 ![图 3 可用性优先策略，且 binlog\_format=mixed](https://static001.geekbang.org/resource/image/37/3a/3786bd6ad37faa34aca25bf1a1d8af3a.png)
 
-图 3 可用性优先策略，且 binlog\_format=mixed
-
 现在，我们一起分析下这个切换流程：
 
 1. 步骤 2 中，主库 A 执行完 insert 语句，插入了一行数据（4,4），之后开始进行主备切换。
@@ -171,8 +165,6 @@ insert into t(c) values(5);
 图 4 中我画出了详细过程，你可以自己再分析一下。
 
 ![图 4 可用性优先策略，且 binlog\_format=row](https://static001.geekbang.org/resource/image/b8/43/b8d2229b2b40dd087fd3b111d1bdda43.png)
-
-图 4 可用性优先策略，且 binlog\_format=row
 
 从上面的分析中，你可以看到一些结论：
 
@@ -199,8 +191,6 @@ insert into t(c) values(5);
 假设，主库 A 和备库 B 间的主备延迟是 30 分钟，这时候主库 A 掉电了，HA 系统要切换 B 作为主库。我们在主动切换的时候，可以等到主备延迟小于 5 秒的时候再启动切换，但这时候已经别无选择了。
 
 ![图 5 可靠性优先策略，主库不可用](https://static001.geekbang.org/resource/image/55/8b/553b7fc2d0dce3ec78bb595e1806eb8b.png)
-
-图 5 可靠性优先策略，主库不可用
 
 采用可靠性优先策略的话，你就必须得等到备库 B 的 seconds\_behind\_master=0 之后，才能切换。但现在的情况比刚刚更严重，并不是系统只读、不可写的问题了，而是系统处于完全不可用的状态。因为，主库 A 掉电后，我们的连接还没有切到备库 B。
 
@@ -230,8 +220,6 @@ insert into t(c) values(5);
 
 ![图 6 备库延迟](https://static001.geekbang.org/resource/image/cf/71/cf5ea52aa3b26ef56c567125197fa171.png)
 
-图 6 备库延迟
-
 你可以把你的分析写在评论区，我会在下一篇文章的末尾跟你讨论这个问题。感谢你的收听，也欢迎你把这篇文章分享给更多的朋友一起阅读。
 
 ## 上期问题时间
@@ -243,8 +231,6 @@ insert into t(c) values(5);
 另一种场景是，有三个节点的时候，如图 7 所示，trx1 是在节点 B 执行的，因此 binlog 上的 server\_id 就是 B，binlog 传给节点 A，然后 A 和 A’ 搭建了双 M 结构，就会出现循环复制。
 
 ![图 7 三节点循环复制](https://static001.geekbang.org/resource/image/f9/71/f968192ce2f436c939dd702b8f409771.png)
-
-图 7 三节点循环复制
 
 这种三节点复制的场景，做数据库迁移的时候会出现。
 

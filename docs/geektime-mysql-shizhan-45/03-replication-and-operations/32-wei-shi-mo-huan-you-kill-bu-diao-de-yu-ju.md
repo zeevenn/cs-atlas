@@ -18,8 +18,6 @@ title: "32 为什么还有 kill 不掉的语句？"
 
 ![图 1 kill query 成功的例子](https://static001.geekbang.org/resource/image/17/d0/17f88dc70c3fbe06a7738a0ac01db4d0.png)
 
-图 1 kill query 成功的例子
-
 可以看到，session C 执行 kill query 以后，session B 几乎同时就提示了语句被中断。这，就是我们预期的结果。
 
 ## 收到 kill 以后，线程做什么？
@@ -55,8 +53,6 @@ title: "32 为什么还有 kill 不掉的语句？"
 
 ![图 2 kill query 无效的例子](https://static001.geekbang.org/resource/image/32/6e/32e4341409fabfe271db3dd4c4df696e.png)
 
-图 2 kill query 无效的例子
-
 可以看到：
 
 1. sesssion C 执行的时候被堵住了；
@@ -65,8 +61,6 @@ title: "32 为什么还有 kill 不掉的语句？"
 4. 但是这时候，如果在 session E 中执行 show processlist，你就能看到下面这个图。
 
 ![图 3 kill connection 之后的效果](https://static001.geekbang.org/resource/image/91/53/915c20e4c11b104d7bcf9d3457304c53.png)
-
-图 3 kill connection 之后的效果
 
 这时候，id=12 这个线程的 Commnad 列显示的是 Killed。也就是说，客户端虽然断开了连接，但实际上服务端上这条语句还在执行过程中。
 
@@ -120,8 +114,6 @@ title: "32 为什么还有 kill 不掉的语句？"
 有些线上的库，会包含很多表（我见过最多的一个库里有 6 万个表）。这时候，你就会发现，每次用客户端连接都会卡在下面这个界面上。
 
 ![图 4 连接等待](https://static001.geekbang.org/resource/image/7e/83/7e4666bfd580505180c77447d1f44c83.png)
-
-图 4 连接等待
 
 而如果 db1 这个库里表很少的话，连接起来就会很快，可以很快进入输入命令的状态。因此，有同学会认为是表的数目影响了连接性能。
 

@@ -40,8 +40,6 @@ select count(*) from tradelog where month(t_modified)=7;
 
 ![图 1 t\_modified 索引示意图](https://static001.geekbang.org/resource/image/3e/86/3e30d9a5e67f711f5af2e2599e800286.png)
 
-图 1 t\_modified 索引示意图
-
 如果你的 SQL 语句条件用的是 where t\_modified='2018-7-1’的话，引擎就会按照上面绿色箭头的路线，快速定位到 t\_modified='2018-7-1’需要的结果。
 
 实际上，B+ 树提供的这个快速定位能力，来源于同一层兄弟节点的有序性。
@@ -57,8 +55,6 @@ select count(*) from tradelog where month(t_modified)=7;
 接下来，我们使用 explain 命令，查看一下这条 SQL 语句的执行结果。
 
 ![图 2 explain 结果](https://static001.geekbang.org/resource/image/27/55/27c2f5ff3549b18ba37a28f4919f3655.png)
-
-图 2 explain 结果
 
 key="t\_modified"表示的是，使用了 t\_modified 这个索引；我在测试表数据中插入了 10 万行数据，rows=100335，说明这条语句扫描了整个索引的所有值；Extra 字段的 Using index，表示的是使用了覆盖索引。
 
@@ -104,8 +100,6 @@ select * from tradelog where tradeid=110717;
 验证结果如图 3 所示。
 
 ![图 3 MySQL 中字符串和数字转换的效果示意图](https://static001.geekbang.org/resource/image/2b/14/2b67fc38f1651e2622fe21d49950b214.png)
-
-图 3 MySQL 中字符串和数字转换的效果示意图
 
 从图中可知，`select "10" > 9` 返回的是 1，所以你就能确认 MySQL 里的转换规则了：在 MySQL 中，字符串和数字做比较的话，是将字符串转换成数字。
 
@@ -172,8 +166,6 @@ select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and l.id=2;
 
 ![图 4 语句 Q1 的 explain 结果](https://static001.geekbang.org/resource/image/ad/22/adfe464af1d15f3261b710a806c0fa22.png)
 
-图 4 语句 Q1 的 explain 结果
-
 我们一起来看下这个结果：
 
 1. 第一行显示优化器会先在交易记录表 tradelog 上查到 id=2 的行，这个步骤用上了主键索引，rows=1 表示只扫描一行；
@@ -184,8 +176,6 @@ select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and l.id=2;
 接下来，我们看下这个 explain 结果表示的执行流程：
 
 ![图 5 语句 Q1 的执行过程](https://static001.geekbang.org/resource/image/82/a9/8289c184c8529acea0269a7460dc62a9.png)
-
-图 5 语句 Q1 的执行过程
 
 图中：
 
@@ -233,8 +223,6 @@ select l.operator from tradelog l , trade_detail d where d.tradeid=l.tradeid and
 
 ![图 6 explain 结果](https://static001.geekbang.org/resource/image/92/11/92cb498ceb3557e41700fae53ce9bd11.png)
 
-图 6 explain 结果
-
 这个语句里 trade\_detail 表成了驱动表，但是 explain 结果的第二行显示，这次的查询操作用上了被驱动表 tradelog 里的索引(tradeid)，扫描行数是 1。
 
 这也是两个 tradeid 字段的 join 操作，为什么这次能用上被驱动表的 tradeid 索引呢？我们来分析一下。
@@ -274,8 +262,6 @@ select d.* from tradelog l , trade_detail d where d.tradeid=CONVERT(l.tradeid US
 ```
 
 ![图 7 SQL 语句优化后的 explain 结果](https://static001.geekbang.org/resource/image/aa/d6/aa844a7bf35d330b9ec96fc159331bd6.png)
-
-图 7 SQL 语句优化后的 explain 结果
 
 这里，我主动把 l.tradeid 转成 utf8，就避免了被驱动表上的字符编码转换，从 explain 结果可以看到，这次索引走对了。
 

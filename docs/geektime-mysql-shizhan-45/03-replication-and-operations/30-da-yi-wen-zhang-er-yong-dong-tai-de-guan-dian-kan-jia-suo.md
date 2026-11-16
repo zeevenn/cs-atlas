@@ -54,8 +54,6 @@ select * from t where id>9 and id<12 order by id desc for update;
 
 ![图 1 索引 id 示意图](https://static001.geekbang.org/resource/image/ac/bb/ac1aa07860c565b907b32c5f75c4f2bb.png)
 
-图 1 索引 id 示意图
-
 1. 首先这个查询语句的语义是 order by id desc，要拿到满足条件的所有行，优化器必须先找到「第一个 id<12 的值」。
 2. 这个过程是通过索引树的搜索过程得到的，在引擎内部，其实是要找到 id=12 的这个值，只是最终没找到，但找到了(10,15)这个间隙。
 3. 然后向左遍历，在遍历过程中，就不是等值查询了，会扫描到 id=5 这一行，所以会加一个 next-key lock (0,5]。
@@ -156,8 +154,6 @@ select id from t where c in(5,20,10) order by c desc for update;
 
 ![图 4 delete 导致间隙变化](https://static001.geekbang.org/resource/image/af/75/af3602b81aeb49e33577ba372d220a75.png)
 
-图 4 delete 导致间隙变化
-
 可以看到，由于 session A 并没有锁住 c=10 这个记录，所以 session B 删除 id=10 这一行是可以的。但是之后，session B 再想 insert id=10 这一行回去就不行了。
 
 现在我们一起看一下此时 show engine innodb status 的结果，看看能不能给我们一些提示。锁信息是在这个命令输出结果的 TRANSACTIONS 这一节。你可以在文稿中看到这张图片\
@@ -192,8 +188,6 @@ select id from t where c in(5,20,10) order by c desc for update;
 看过了 insert 和 delete 的加锁例子，我们再来看一个 update 语句的案例。在留言区中@信信 同学做了这个试验：
 
 ![图 6 update 的例子](https://static001.geekbang.org/resource/image/61/a7/61c1ceea7b59201649c2514c9db864a7.png)
-
-图 6 update 的例子
 
 你可以自己分析一下，session A 的加锁范围是索引 c 上的 (5,10]、(10,15]、(15,20]、(20,25]和(25,supremum]。
 

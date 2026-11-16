@@ -54,15 +54,11 @@ select * from t where a between 10000 and 20000;
 
 ![图 1 使用 explain 命令查看语句执行情况](https://static001.geekbang.org/resource/image/2c/e3/2cfce769551c6eac9bfbee0563d48fe3.png)
 
-图 1 使用 explain 命令查看语句执行情况
-
 从图 1 看上去，这条查询语句的执行也确实符合预期，key 这个字段值是’a’，表示优化器选择了索引 a。
 
 不过别急，这个案例不会这么简单。在我们已经准备好的包含了 10 万行数据的表上，我们再做如下操作。
 
 ![图 2 session A 和 session B 的执行流程](https://static001.geekbang.org/resource/image/1e/1e/1e5ba1c2934d3b2c0d96b210a27e1a1e.png)
-
-图 2 session A 和 session B 的执行流程
 
 这里，session A 的操作你已经很熟悉了，它就是开启了一个事务。随后，session B 把数据都删除后，又调用了 idata 这个存储过程，插入了 10 万行数据。
 
@@ -85,8 +81,6 @@ select * from t force index(a) where a between 10000 and 20000;/*Q2*/
 如图 3 所示是这三条 SQL 语句执行完成后的慢查询日志。
 
 ![图 3 slow log 结果](https://static001.geekbang.org/resource/image/7c/f6/7c58b9c71853b8bba1a8ad5e926de1f6.png)
-
-图 3 slow log 结果
 
 可以看到，Q1 扫描了 10 万行，显然是走了全表扫描，执行时间是 40 毫秒。Q2 扫描了 10001 行，执行了 21 毫秒。也就是说，我们在没有使用 force index 的时候，MySQL 用错了索引，导致了更长的执行时间。
 
@@ -111,8 +105,6 @@ MySQL 在真正开始执行语句之前，并不能精确地知道满足这个�
 我们可以使用 show index 方法，看到一个索引的基数。如图 4 所示，就是表 t 的 show index 的结果 。虽然这个表的每一行的三个字段值都是一样的，但是在统计信息中，这三个索引的基数值并不同，而且其实都不准确。
 
 ![图 4 表 t 的 show index 结果](https://static001.geekbang.org/resource/image/16/d4/16dbf8124ad529fec0066950446079d4.png)
-
-图 4 表 t 的 show index 结果
 
 那么， **MySQL 是怎样得到索引的基数的呢？** 这里，我给你简单介绍一下 MySQL 采样统计的方法。
 
@@ -139,8 +131,6 @@ MySQL 在真正开始执行语句之前，并不能精确地知道满足这个�
 
 ![图 5 意外的 explain 结果](https://static001.geekbang.org/resource/image/e2/89/e2bc5f120858391d4accff05573e1289.png)
 
-图 5 意外的 explain 结果
-
 rows 这个字段表示的是预计扫描行数。
 
 其中，Q1 的结果还是符合预期的，rows 的值是 104620；但是 Q2 的 rows 值是 37116，偏差就大了。而图 1 中我们用 explain 命令看到的 rows 是只有 10001 行，是这个偏差误导了优化器的判断。
@@ -160,8 +150,6 @@ rows 这个字段表示的是预计扫描行数。
 既然是统计信息不对，那就修正。analyze table t 命令，可以用来重新统计索引信息。我们来看一下执行效果。
 
 ![图 6 执行 analyze table t 命令恢复的 explain 结果](https://static001.geekbang.org/resource/image/20/9c/209e9d3514688a3bcabbb75e54e1e49c.png)
-
-图 6 执行 analyze table t 命令恢复的 explain 结果
 
 这回对了。
 
@@ -183,8 +171,6 @@ select * from t where (a between 1 and 1000)  and (b between 50000 and 100000) o
 
 ![图 7 a、b 索引的结构图](https://static001.geekbang.org/resource/image/1d/b9/1d037f92063e800c3bfff3f4dbf1a2b9.png)
 
-图 7 a、b 索引的结构图
-
 如果使用索引 a 进行查询，那么就是扫描索引 a 的前 1000 个值，然后取到对应的 id，再到主键索引上去查出每一行，然后根据字段 b 来过滤。显然这样需要扫描 1000 行。
 
 如果使用索引 b 进行查询，那么就是扫描索引 b 的最后 50001 个值，与上面的执行过程相同，也是需要回到主键索引上取值再判断，所以需要扫描 50001 行。
@@ -198,8 +184,6 @@ explain select * from t where (a between 1 and 1000) and (b between 50000 and 10
 ```
 
 ![图 8 使用 explain 方法查看执行计划 2](https://static001.geekbang.org/resource/image/48/b8/483bcb1ef3bb902844e80d9cbdd73ab8.png)
-
-图 8 使用 explain 方法查看执行计划 2
 
 可以看到，返回结果中 key 字段显示，这次优化器选择了索引 b，而 rows 字段显示需要扫描的行数是 50198。
 
@@ -218,8 +202,6 @@ explain select * from t where (a between 1 and 1000) and (b between 50000 and 10
 
 ![图 9 使用不同索引的语句执行耗时](https://static001.geekbang.org/resource/image/95/54/9582401a6bed6cb8fd803c9555750b54.png)
 
-图 9 使用不同索引的语句执行耗时
-
 可以看到，原本语句需要执行 2.23 秒，而当你使用 force index(a)的时候，只用了 0.05 秒，比优化器的选择快了 40 多倍。
 
 也就是说，优化器没有选择正确的索引，force index 起到了矫正的作用。
@@ -236,8 +218,6 @@ explain select * from t where (a between 1 and 1000) and (b between 50000 and 10
 
 ![图 10 order by b,a limit 1 执行结果](https://static001.geekbang.org/resource/image/14/94/14cd598e52a2b72dd334a42603e5b894.png)
 
-图 10 order by b,a limit 1 执行结果
-
 之前优化器选择使用索引 b，是因为它认为使用索引 b 可以避免排序（b 本身是索引，已经是有序的了，如果选择索引 b 的话，不需要再做排序，只需要遍历），所以即使扫描行数多，也判定为代价更小。
 
 现在 order by b,a 这种写法，要求按照 b,a 排序，就意味着使用这两个索引都需要排序。因此，扫描行数成了影响决策的主要条件，于是此时优化器选了只需要扫描 1000 行的索引 a。
@@ -251,8 +231,6 @@ select * from  (select * from t where (a between 1 and 1000)  and (b between 500
 ```
 
 ![图 11 改写 SQL 的 explain](https://static001.geekbang.org/resource/image/b1/d7/b1a2ad43c78477d7f93dbc692cbaa0d7.png)
-
-图 11 改写 SQL 的 explain
 
 在这个例子里，我们用 limit 100 让优化器意识到，使用 b 索引代价是很高的。其实是我们根据数据特征诱导了一下优化器，也不具备通用性。
 

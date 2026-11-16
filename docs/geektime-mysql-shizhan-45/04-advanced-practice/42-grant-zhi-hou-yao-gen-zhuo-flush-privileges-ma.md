@@ -27,8 +27,6 @@ create user 'ua'@'%' identified by 'pa';
 
 ![图 1 mysql.user 数据行](https://static001.geekbang.org/resource/image/7e/35/7e75bbfbca0cb932e1256941c99d5f35.png)
 
-图 1 mysql.user 数据行
-
 在 MySQL 中，用户权限是有不同的范围的。接下来，我就按照用户权限范围从大到小的顺序依次和你说明。
 
 ## 全局权限
@@ -81,8 +79,6 @@ grant all privileges on db1.* to 'ua'@'%' with grant option;
 
 ![图 2 mysql.db 数据行](https://static001.geekbang.org/resource/image/32/2e/32cd61ee14ad2f370e1de0fb4e39bb2e.png)
 
-图 2 mysql.db 数据行
-
 每次需要判断一个用户对一个数据库读写权限的时候，都需要遍历一次 acl\_dbs 数组，根据 user、host 和 db 找到匹配的对象，然后根据对象的权限位来判断。
 
 也就是说，grant 修改 db 权限的时候，是同时对磁盘和内存生效的。
@@ -90,8 +86,6 @@ grant all privileges on db1.* to 'ua'@'%' with grant option;
 grant 操作对于已经存在的连接的影响，在全局权限和基于 db 的权限效果是不同的。接下来，我们做一个对照试验来分别看一下。
 
 ![图 3 权限操作效果](https://static001.geekbang.org/resource/image/ae/c7/aea26807c8895961b666a5d96b081ac7.png)
-
-图 3 权限操作效果
 
 需要说明的是，图中 set global sync\_binlog 这个操作是需要 super 权限的。
 
@@ -138,8 +132,6 @@ flush privileges 命令会清空 acl\_users 数组，然后从 mysql.user 表中
 
 ![图 4 使用 flush privileges](https://static001.geekbang.org/resource/image/90/ec/9031814361be42b7bc084ad2ab2aa3ec.png)
 
-图 4 使用 flush privileges
-
 可以看到，T3 时刻虽然已经用 delete 语句删除了用户 ua，但是在 T4 时刻，仍然可以用 ua 连接成功。原因就是，这时候内存中 acl\_users 数组中还有这个用户，因此系统判断时认为用户还正常存在。
 
 在 T5 时刻执行过 flush 命令后，内存更新，T6 时刻再要用 ua 来登录的话，就会报错无法访问了。
@@ -147,8 +139,6 @@ flush privileges 命令会清空 acl\_users 数组，然后从 mysql.user 表中
 直接操作系统表是不规范的操作，这个不一致状态也会导致一些更「诡异」的现象发生。比如，前面这个通过 delete 语句删除用户的例子，就会出现下面的情况：
 
 ![图 5 不规范权限操作导致的异常](https://static001.geekbang.org/resource/image/dd/f1/dd625b6b4eb2dcbdaac73648a1af50f1.png)
-
-图 5 不规范权限操作导致的异常
 
 可以看到，由于在 T3 时刻直接删除了数据表的记录，而内存的数据还存在。这就导致了：
 

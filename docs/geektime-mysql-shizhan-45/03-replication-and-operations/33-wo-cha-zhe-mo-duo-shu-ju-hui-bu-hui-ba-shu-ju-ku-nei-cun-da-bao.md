@@ -24,7 +24,7 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 实际上，服务端并不需要保存一个完整的结果集。取数据和发数据的流程是这样的：
 
-1. 获取一行，写到 net\_buffer 中。这块内存的大小是由参数 net\_buffer\_length 定义的，默认是 16k。
+1. 获取一行，写到 net\_buffer 中。这块内存的大小是由参数 `net_buffer_length` 定义的，默认是 16k。
 2. 重复获取行，直到 net\_buffer 写满，调用网络接口发出去。
 3. 如果发送成功，就清空 net\_buffer，然后继续取下一行，并写入 net\_buffer。
 4. 如果发送函数返回 EAGAIN 或 WSAEWOULDBLOCK，就表示本地网络栈（socket send buffer）写满了，进入等待。直到网络栈重新可写，再继续发送。
@@ -35,18 +35,18 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 从这个流程中，你可以看到：
 
-1. 一个查询在发送过程中，占用的 MySQL 内部的内存最大就是 net\_buffer\_length 这么大，并不会达到 200G；
-2. socket send buffer 也不可能达到 200G（默认定义/proc/sys/net/core/wmem\_default），如果 socket send buffer 被写满，就会暂停读数据的流程。
+1. 一个查询在发送过程中，占用的 MySQL 内部的内存最大就是 `net_buffer_length` 这么大，并不会达到 200G；
+2. socket send buffer 也不可能达到 200G（默认定义/proc/sys/net/core/`wmem_default`），如果 socket send buffer 被写满，就会暂停读数据的流程。
 
-也就是说， **MySQL 是「边读边发的」** ，这个概念很重要。这就意味着，如果客户端接收得慢，会导致 MySQL 服务端由于结果发不出去，这个事务的执行时间变长。
+也就是说， **MySQL 是「边读边发的」**，这个概念很重要。这就意味着，如果客户端接收得慢，会导致 MySQL 服务端由于结果发不出去，这个事务的执行时间变长。
 
 比如下面这个状态，就是我故意让客户端不去读 socket receive buffer 中的内容，然后在服务端 show processlist 看到的结果。
 
 ![图 2 服务端发送阻塞](https://static001.geekbang.org/resource/image/18/c3/183a704d4495bebbc13c524695b5b6c3.png)
 
-如果你看到 State 的值一直处于 **`Sending to client`** ，就表示服务器端的网络栈写满了。
+如果你看到 State 的值一直处于 **`Sending to client`**，就表示服务器端的网络栈写满了。
 
-我在上一篇文章中曾提到，如果客户端使用–quick 参数，会使用 mysql\_use\_result 方法。这个方法是读一行处理一行。你可以想象一下，假设有一个业务的逻辑比较复杂，每读一行数据以后要处理的逻辑如果很慢，就会导致客户端要过很久才会去取下一行数据，可能就会出现如图 2 所示的这种情况。
+我在上一篇文章中曾提到，如果客户端使用 `–quick` 参数，会使用 mysql\_use\_result 方法。这个方法是读一行处理一行。你可以想象一下，假设有一个业务的逻辑比较复杂，每读一行数据以后要处理的逻辑如果很慢，就会导致客户端要过很久才会去取下一行数据，可能就会出现如图 2 所示的这种情况。
 
 因此， **对于正常的线上业务来说，如果一个查询的返回结果不会很多的话，我都建议你使用 mysql\_store\_result 这个接口，直接把查询结果保存到本地内存。**
 
@@ -54,9 +54,9 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 另一方面，如果你在自己负责维护的 MySQL 里看到很多个线程都处于 `Sending to client` 这个状态，就意味着你要让业务开发同学优化查询结果，并评估这么多的返回结果是否合理。
 
-而如果要快速减少处于这个状态的线程的话，将 net\_buffer\_length 参数设置为一个更大的值是一个可选方案。
+而如果要快速减少处于这个状态的线程的话，将 `net_buffer_length` 参数设置为一个更大的值是一个可选方案。
 
-与 `Sending to client` 长相很类似的一个状态是 **`Sending data`** ，这是一个经常被误会的问题。有同学问我说，在自己维护的实例上看到很多查询语句的状态是 `Sending data`，但查看网络也没什么问题啊，为什么 Sending data 要这么久？
+与 `Sending to client` 长相很类似的一个状态是 **`Sending data`**，这是一个经常被误会的问题。有同学问我说，在自己维护的实例上看到很多查询语句的状态是 `Sending data`，但查看网络也没什么问题啊，为什么 Sending data 要这么久？
 
 实际上，一个查询语句的状态变化是这样的（注意：这里，我略去了其他无关的状态）：
 
@@ -89,7 +89,7 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 答案是不需要。因为这时候内存数据页的结果是最新的，直接读内存页就可以了。你看，这时候查询根本不需要读磁盘，直接从内存拿结果，速度是很快的。所以说，Buffer Pool 还有加速查询的作用。
 
-而 Buffer Pool 对查询的加速效果，依赖于一个重要的指标，即： **内存命中率** 。
+而 Buffer Pool 对查询的加速效果，依赖于一个重要的指标，即： **内存命中率**。
 
 你可以在 show engine innodb status 结果中，查看一个系统当前的 BP 命中率。一般情况下，一个稳定服务的线上系统，要保证响应时间符合要求的话，内存命中率要在 99%以上。
 
@@ -99,11 +99,11 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 如果所有查询需要的数据页都能够直接从内存得到，那是最好的，对应的命中率就是 100%。但，这在实际生产上是很难做到的。
 
-InnoDB Buffer Pool 的大小是由参数 innodb\_buffer\_pool\_size 确定的，一般建议设置成可用物理内存的 60%\~80%。
+InnoDB Buffer Pool 的大小是由参数 `innodb_buffer_pool_size` 确定的，一般建议设置成可用物理内存的 60%\~80%。
 
 在大约十年前，单机的数据量是上百个 G，而物理内存是几个 G；现在虽然很多服务器都能有 128G 甚至更高的内存，但是单机的数据量却达到了 T 级别。
 
-所以，innodb\_buffer\_pool\_size 小于磁盘的数据量是很常见的。如果一个 Buffer Pool 满了，而又要从磁盘读入一个数据页，那肯定是要淘汰一个旧数据页的。
+所以，`innodb_buffer_pool_size` 小于磁盘的数据量是很常见的。如果一个 Buffer Pool 满了，而又要从磁盘读入一个数据页，那肯定是要淘汰一个旧数据页的。
 
 InnoDB 内存管理用的是最近最少使用 (Least Recently Used, LRU)算法，这个算法的核心就是淘汰最久未使用的数据。
 
@@ -138,7 +138,7 @@ InnoDB 管理 Buffer Pool 的 LRU 算法，是用链表来实现的。
 2. 之后要访问一个新的不存在于当前链表的数据页，这时候依然是淘汰掉数据页 Pm，但是新插入的数据页 Px，是放在 LRU\_old 处。
 3. 处于 old 区域的数据页，每次被访问的时候都要做下面这个判断：
    * 若这个数据页在 LRU 链表中存在的时间超过了 1 秒，就把它移动到链表头部；
-   * 如果这个数据页在 LRU 链表中存在的时间短于 1 秒，位置保持不变。1 秒这个时间，是由参数 innodb\_old\_blocks\_time 控制的。其默认值是 1000，单位毫秒。
+   * 如果这个数据页在 LRU 链表中存在的时间短于 1 秒，位置保持不变。1 秒这个时间，是由参数 `innodb_old_blocks_time` 控制的。其默认值是 1000，单位毫秒。
 
 这个策略，就是为了处理类似全表扫描的操作量身定制的。还是以刚刚的扫描 200G 的历史数据表为例，我们看看改进后的 LRU 算法的操作逻辑：
 

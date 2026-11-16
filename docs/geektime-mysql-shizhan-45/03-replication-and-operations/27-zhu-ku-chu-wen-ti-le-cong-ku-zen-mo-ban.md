@@ -44,8 +44,8 @@ MASTER_LOG_POS=$master_log_pos
 
 这条命令有这么 6 个参数：
 
-* MASTER\_HOST、MASTER\_PORT、MASTER\_USER 和 MASTER\_PASSWORD 四个参数，分别代表了主库 A’ 的 IP、端口、用户名和密码。
-* 最后两个参数 MASTER\_LOG\_FILE 和 MASTER\_LOG\_POS 表示，要从主库的 master\_log\_name 文件的 master\_log\_pos 这个位置的日志继续同步。而这个位置就是我们所说的同步位点，也就是主库对应的文件名和日志偏移量。
+* `MASTER_HOST`、`MASTER_PORT`、`MASTER_USER` 和 `MASTER_PASSWORD` 四个参数，分别代表了主库 A’ 的 IP、端口、用户名和密码。
+* 最后两个参数 `MASTER_LOG_FILE` 和 `MASTER_LOG_POS` 表示，要从主库的 master\_log\_name 文件的 master\_log\_pos 这个位置的日志继续同步。而这个位置就是我们所说的同步位点，也就是主库对应的文件名和日志偏移量。
 
 那么，这里就有一个问题了，节点 B 要设置成 A’ 的从库，就要执行 change master 命令，就不可避免地要设置位点的这两个参数，但是这两个参数到底应该怎么设置呢？
 
@@ -86,7 +86,7 @@ mysqlbinlog File --stop-datetime=T --start-datetime=T
 
 所以， **通常情况下，我们在切换任务的时候，要先主动跳过这些错误，有两种常用的方法。**
 
-**一种做法是** ，主动跳过一个事务。跳过命令的写法是：
+**一种做法是**，主动跳过一个事务。跳过命令的写法是：
 
 ```sql
 set global sql_slave_skip_counter=1;
@@ -95,22 +95,22 @@ start slave;
 
 因为切换过程中，可能会不止重复执行一个事务，所以我们需要在从库 B 刚开始接到新主库 A’ 时，持续观察，每次碰到这些错误就停下来，执行一次跳过命令，直到不再出现停下来的情况，以此来跳过可能涉及的所有事务。
 
-**另外一种方式是，** 通过设置 slave\_skip\_errors 参数，直接设置跳过指定的错误。
+**另外一种方式是，** 通过设置 `slave_skip_errors` 参数，直接设置跳过指定的错误。
 
 在执行主备切换时，有这么两类错误，是经常会遇到的：
 
 * 1062 错误是插入数据时唯一键冲突；
 * 1032 错误是删除数据时找不到行。
 
-因此，我们可以把 slave\_skip\_errors 设置为 `1032,1062`，这样中间碰到这两个错误时就直接跳过。
+因此，我们可以把 `slave_skip_errors` 设置为 `1032,1062`，这样中间碰到这两个错误时就直接跳过。
 
 这里需要注意的是，这种直接跳过指定错误的方法，针对的是主备切换时，由于找不到精确的同步位点，所以只能采用这种方法来创建从库和新主库的主备关系。
 
-这个背景是，我们很清楚在主备切换过程中，直接跳过 1032 和 1062 这两类错误是无损的，所以才可以这么设置 slave\_skip\_errors 参数。等到主备间的同步关系建立完成，并稳定执行一段时间之后，我们还需要把这个参数设置为空，以免之后真的出现了主从数据不一致，也跳过了。
+这个背景是，我们很清楚在主备切换过程中，直接跳过 1032 和 1062 这两类错误是无损的，所以才可以这么设置 `slave_skip_errors` 参数。等到主备间的同步关系建立完成，并稳定执行一段时间之后，我们还需要把这个参数设置为空，以免之后真的出现了主从数据不一致，也跳过了。
 
 ## GTID
 
-通过 sql\_slave\_skip\_counter 跳过事务和通过 slave\_skip\_errors 忽略错误的方法，虽然都最终可以建立从库 B 和新主库 A’ 的主备关系，但这两种操作都很复杂，而且容易出错。所以，MySQL 5.6 版本引入了 GTID，彻底解决了这个困难。
+通过 `sql_slave_skip_counter` 跳过事务和通过 `slave_skip_errors` 忽略错误的方法，虽然都最终可以建立从库 B 和新主库 A’ 的主备关系，但这两种操作都很复杂，而且容易出错。所以，MySQL 5.6 版本引入了 GTID，彻底解决了这个困难。
 
 那么，GTID 到底是什么意思，又是如何解决找同步位点这个问题呢？现在，我就和你简单介绍一下。
 
@@ -122,7 +122,7 @@ GTID=server_uuid:gno
 
 其中：
 
-* server\_uuid 是一个实例第一次启动时自动生成的，是一个全局唯一的值；
+* `server_uuid` 是一个实例第一次启动时自动生成的，是一个全局唯一的值；
 * gno 是一个整数，初始值是 1，每次提交事务的时候分配给这个事务，并加 1。
 
 这里我需要和你说明一下，在 MySQL 的官方文档里，GTID 格式是这么定义的：
@@ -131,24 +131,24 @@ GTID=server_uuid:gno
 GTID=source_id:transaction_id
 ```
 
-这里的 source\_id 就是 server\_uuid；而后面的这个 transaction\_id，我觉得容易造成误导，所以我改成了 gno。为什么说使用 transaction\_id 容易造成误解呢？
+这里的 source\_id 就是 `server_uuid`；而后面的这个 transaction\_id，我觉得容易造成误导，所以我改成了 gno。为什么说使用 transaction\_id 容易造成误解呢？
 
 因为，在 MySQL 里面我们说 transaction\_id 就是指事务 id，事务 id 是在事务执行过程中分配的，如果这个事务回滚了，事务 id 也会递增，而 gno 是在事务提交的时候才会分配。
 
 从效果上看，GTID 往往是连续的，因此我们用 gno 来表示更容易理解。
 
-GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 gtid\_mode=on 和 enforce\_gtid\_consistency=on 就可以了。
+GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 `gtid_mode`=on 和 `enforce_gtid_consistency`=on 就可以了。
 
-在 GTID 模式下，每个事务都会跟一个 GTID 一一对应。这个 GTID 有两种生成方式，而使用哪种方式取决于 session 变量 gtid\_next 的值。
+在 GTID 模式下，每个事务都会跟一个 GTID 一一对应。这个 GTID 有两种生成方式，而使用哪种方式取决于 session 变量 `gtid_next` 的值。
 
-1. 如果 gtid\_next=automatic，代表使用默认值。这时，MySQL 就会把 server\_uuid:gno 分配给这个事务。\
-   a. 记录 binlog 的时候，先记录一行 SET @@SESSION.GTID\_NEXT=‘server\_uuid:gno’;\
+1. 如果 `gtid_next`=automatic，代表使用默认值。这时，MySQL 就会把 `server_uuid`:gno 分配给这个事务。\
+   a. 记录 binlog 的时候，先记录一行 SET @@SESSION.`GTID_NEXT`=‘`server_uuid`:gno’;\
    b. 把这个 GTID 加入本实例的 GTID 集合。
-2. 如果 gtid\_next 是一个指定的 GTID 的值，比如通过 set gtid\_next='current\_gtid’ 指定为 current\_gtid，那么就有两种可能：\
+2. 如果 `gtid_next` 是一个指定的 GTID 的值，比如通过 set `gtid_next`='current\_gtid’ 指定为 current\_gtid，那么就有两种可能：\
    a. 如果 current\_gtid 已经存在于实例的 GTID 集合中，接下来执行的这个事务会直接被系统忽略；\
    b. 如果 current\_gtid 没有存在于实例的 GTID 集合中，就将这个 current\_gtid 分配给接下来要执行的事务，也就是说系统不需要给这个事务生成新的 GTID，因此 gno 也不用加 1。
 
-注意，一个 current\_gtid 只能给一个事务使用。这个事务提交后，如果要执行下一个事务，就要执行 set 命令，把 gtid\_next 设置成另外一个 gtid 或者 automatic。
+注意，一个 current\_gtid 只能给一个事务使用。这个事务提交后，如果要执行下一个事务，就要执行 set 命令，把 `gtid_next` 设置成另外一个 gtid 或者 automatic。
 
 这样，每个 MySQL 实例都维护了一个 GTID 集合，用来对应「这个实例执行过的所有事务」。
 
@@ -168,7 +168,7 @@ insert into t values(1,1);
 
 ![图 4 初始化数据的 binlog](https://static001.geekbang.org/resource/image/28/c2/28a5cab0079fb12fd5abecd92b3324c2.png)
 
-可以看到，事务的 BEGIN 之前有一条 SET @@SESSION.GTID\_NEXT 命令。这时，如果实例 X 有从库，那么将 CREATE TABLE 和 insert 语句的 binlog 同步过去执行的话，执行事务之前就会先执行这两个 SET 命令， 这样被加入从库的 GTID 集合的，就是图中的这两个 GTID。
+可以看到，事务的 BEGIN 之前有一条 SET @@SESSION.`GTID_NEXT` 命令。这时，如果实例 X 有从库，那么将 CREATE TABLE 和 insert 语句的 binlog 同步过去执行的话，执行事务之前就会先执行这两个 SET 命令， 这样被加入从库的 GTID 集合的，就是图中的这两个 GTID。
 
 假设，现在这个实例 X 是另外一个实例 Y 的从库，并且此时在实例 Y 上执行了下面这条插入语句：
 
@@ -198,7 +198,7 @@ start slave;
 
 这样，我再执行 start slave 命令让同步线程执行起来的时候，虽然实例 X 上还是会继续执行实例 Y 传过来的事务，但是由于 `aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10` 已经存在于实例 X 的 GTID 集合中了，所以实例 X 就会直接跳过这个事务，也就不会再出现主键冲突的错误。
 
-在上面的这个语句序列中，start slave 命令之前还有一句 set gtid\_next=automatic。这句话的作用是「恢复 GTID 的默认分配行为」，也就是说如果之后有新的事务再执行，就还是按照原来的分配方式，继续分配 gno=3。
+在上面的这个语句序列中，start slave 命令之前还有一句 set `gtid_next`=automatic。这句话的作用是「恢复 GTID 的默认分配行为」，也就是说如果之后有新的事务再执行，就还是按照原来的分配方式，继续分配 gno=3。
 
 ## 基于 GTID 的主备切换
 
@@ -215,7 +215,7 @@ MASTER_PASSWORD=$password
 master_auto_position=1
 ```
 
-其中，master\_auto\_position=1 就表示这个主备关系使用的是 GTID 协议。可以看到，前面让我们头疼不已的 MASTER\_LOG\_FILE 和 MASTER\_LOG\_POS 参数，已经不需要指定了。
+其中，`master_auto_position`=1 就表示这个主备关系使用的是 GTID 协议。可以看到，前面让我们头疼不已的 `MASTER_LOG_FILE` 和 `MASTER_LOG_POS` 参数，已经不需要指定了。
 
 我们把现在这个时刻，实例 A’ 的 GTID 集合记为 set\_a，实例 B 的 GTID 集合记为 set\_b。接下来，我们就看看现在的主备切换逻辑。
 
@@ -250,7 +250,7 @@ master_auto_position=1
 
 之前在第 22 篇文章[《MySQL 有哪些「饮鸩止渴」提高性能的方法？》](https://time.geekbang.org/column/article/75746)中，我和你提到业务高峰期的慢查询性能问题时，分析到如果是由于索引缺失引起的性能问题，我们可以通过在线加索引来解决。但是，考虑到要避免新增索引对主库性能造成的影响，我们可以先在备库加索引，然后再切换。
 
-当时我说，在双 M 结构下，备库执行的 DDL 语句也会传给主库，为了避免传回后对主库造成影响，要通过 set sql\_log\_bin=off 关掉 binlog。
+当时我说，在双 M 结构下，备库执行的 DDL 语句也会传给主库，为了避免传回后对主库造成影响，要通过 set `sql_log_bin`=off 关掉 binlog。
 
 评论区有位同学提出了一个问题：这样操作的话，数据库里面是加了索引，但是 binlog 并没有记录下这一个更新，是不是会导致数据和日志不一致？
 
@@ -293,7 +293,7 @@ start slave;
 
 ## 上期问题时间
 
-上一篇文章最后，我给你留的问题是，如果主库都是单线程压力模式，在从库追主库的过程中，binlog-transaction-dependency-tracking 应该选用什么参数？
+上一篇文章最后，我给你留的问题是，如果主库都是单线程压力模式，在从库追主库的过程中，`binlog-transaction-dependency-tracking` 应该选用什么参数？
 
 这个问题的答案是，应该将这个参数设置为 WRITESET。
 
@@ -301,7 +301,7 @@ start slave;
 
 同样地，由于 WRITESET\_SESSION 模式要求在备库应用日志的时候，同一个线程的日志必须与主库上执行的先后顺序相同，也会导致主库单线程压力模式下退化成单线程复制。
 
-所以，应该将 binlog-transaction-dependency-tracking 设置为 WRITESET。
+所以，应该将 `binlog-transaction-dependency-tracking` 设置为 WRITESET。
 
 **评论区留言点赞板：**
 

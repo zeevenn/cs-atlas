@@ -49,7 +49,7 @@ grant all privileges on *.* to 'ua'@'%' with grant option;
 1. grant 命令对于全局权限，同时更新了磁盘和内存。命令完成后即时生效，接下来新创建的连接会使用新的权限。
 2. 对于一个已经存在的连接，它的全局权限不受 grant 命令的影响。
 
-需要说明的是， **一般在生产环境上要合理控制用户权限的范围** 。我们上面用到的这个 grant 语句就是一个典型的错误示范。如果一个用户有所有权限，一般就不应该设置为所有 IP 地址都可以访问。
+需要说明的是， **一般在生产环境上要合理控制用户权限的范围**。我们上面用到的这个 grant 语句就是一个典型的错误示范。如果一个用户有所有权限，一般就不应该设置为所有 IP 地址都可以访问。
 
 如果要回收上面的 grant 语句赋予的权限，你可以使用下面这条命令：
 
@@ -87,7 +87,7 @@ grant 操作对于已经存在的连接的影响，在全局权限和基于 db �
 
 ![图 3 权限操作效果](https://static001.geekbang.org/resource/image/ae/c7/aea26807c8895961b666a5d96b081ac7.png)
 
-需要说明的是，图中 set global sync\_binlog 这个操作是需要 super 权限的。
+需要说明的是，图中 set global `sync_binlog` 这个操作是需要 super 权限的。
 
 可以看到，虽然用户 ua 的 super 权限在 T3 时刻已经通过 revoke 语句回收了，但是在 T4 时刻执行 set global 的时候，权限验证还是通过了。这是因为 super 是全局权限，这个权限信息在线程对象中，而 revoke 操作影响不到这个线程对象。
 
@@ -178,7 +178,7 @@ grant super on *.* to 'ua'@'%' identified by 'pa';
 
 上期的问题是，MySQL 解析 statement 格式的 binlog 的时候，对于 load data 命令，解析出来为什么用的是 load data local。
 
-这样做的一个原因是，为了确保备库应用 binlog 正常。因为备库可能配置了 secure\_file\_priv=null，所以如果不用 local 的话，可能会导入失败，造成主备同步延迟。
+这样做的一个原因是，为了确保备库应用 binlog 正常。因为备库可能配置了 `secure_file_priv`=null，所以如果不用 local 的话，可能会导入失败，造成主备同步延迟。
 
 另一种应用场景是使用 mysqlbinlog 工具解析 binlog 文件，并应用到目标库的情况。你可以使用下面这条命令 ：
 

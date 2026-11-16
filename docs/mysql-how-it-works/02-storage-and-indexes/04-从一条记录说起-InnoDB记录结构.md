@@ -509,7 +509,7 @@ Query OK, 1 row affected (0.00 sec)
 
 ![COMPACT 与 REDUNDANT 行溢出的页外存储][04-17]
 
-最后需要注意的是，<span style="color:red">不只是 ***VARCHAR(M)*** 类型的列，其他的 ***TEXT*** 、 ***BLOB*** 类型的列在存储数据非常多的时候也会发生行溢出</span>。
+最后需要注意的是，<span style="color:red">不只是 ***VARCHAR(M)*** 类型的列，其他的 ***TEXT***、 ***BLOB*** 类型的列在存储数据非常多的时候也会发生行溢出</span>。
 
 #### 行溢出的临界点
 

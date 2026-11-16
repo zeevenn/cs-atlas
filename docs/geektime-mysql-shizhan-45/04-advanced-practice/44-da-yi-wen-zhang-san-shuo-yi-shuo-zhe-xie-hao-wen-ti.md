@@ -180,7 +180,7 @@ select a,count(*) from t group by a order by null;
 
 ## 备库自增主键问题
 
-除了性能问题，大家对细节的追问也很到位。在第 39 篇文章[《自增主键为什么不是连续的？》](https://time.geekbang.org/column/article/80531)评论区，@帽子掉了 同学问到：在 binlog\_format=statement 时，语句 A 先获取 id=1，然后语句 B 获取 id=2；接着语句 B 提交，写 binlog，然后语句 A 再写 binlog。这时候，如果 binlog 重放，是不是会发生语句 B 的 id 为 1，而语句 A 的 id 为 2 的不一致情况呢？
+除了性能问题，大家对细节的追问也很到位。在第 39 篇文章[《自增主键为什么不是连续的？》](https://time.geekbang.org/column/article/80531)评论区，@帽子掉了 同学问到：在 `binlog_format`=statement 时，语句 A 先获取 id=1，然后语句 B 获取 id=2；接着语句 B 提交，写 binlog，然后语句 A 再写 binlog。这时候，如果 binlog 重放，是不是会发生语句 B 的 id 为 1，而语句 A 的 id 为 2 的不一致情况呢？
 
 首先，这个问题默认了自增 id 的生成顺序，和 binlog 的写入顺序可能是不同的，这个理解是正确的。
 
@@ -278,7 +278,7 @@ PARTITION BY RANGE (YEAR(ftime))
 
 > @夹心面包 、@郭江伟 同学提到了最后一种方案。
 >
-> @aliang 同学提了一个好问题，关于 open\_files\_limit 和 innodb\_open\_files 的关系，我在回复中做了说明，大家可以看一下。
+> @aliang 同学提了一个好问题，关于 `open_files_limit` 和 `innodb_open_files` 的关系，我在回复中做了说明，大家可以看一下。
 >
 > @万勇 提了一个好问题，实际上对于现在官方的版本，将字段加在中间还是最后，在性能上是没差别的。但是，我建议大家养成习惯（如果你是 DBA 就帮业务开发同学养成习惯），将字段加在最后面，因为这样还是比较方便操作的。这个问题，我也在评论的答复中做了说明，你可以看一下。
 

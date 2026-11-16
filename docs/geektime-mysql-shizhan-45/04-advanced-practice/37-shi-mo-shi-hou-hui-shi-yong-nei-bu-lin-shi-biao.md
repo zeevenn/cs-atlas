@@ -123,7 +123,7 @@ select id%10 as m, count(*) as c from t1 group by m order by null;
 
 由于表 t1 中的 id 值是从 1 开始的，因此返回的结果集中第一行是 id=1；扫描到 id=10 的时候才插入 m=0 这一行，因此结果集里最后一行才是 m=0。
 
-这个例子里由于临时表只有 10 行，内存可以放得下，因此全程只使用了内存临时表。但是，内存临时表的大小是有限制的，参数 tmp\_table\_size 就是控制这个内存大小的，默认是 16M。
+这个例子里由于临时表只有 10 行，内存可以放得下，因此全程只使用了内存临时表。但是，内存临时表的大小是有限制的，参数 `tmp_table_size` 就是控制这个内存大小的，默认是 16M。
 
 如果我执行下面这个语句序列：
 
@@ -230,7 +230,7 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 
 1. 如果对 group by 语句的结果没有排序要求，要在语句后面加 order by null；
 2. 尽量让 group by 过程用上表的索引，确认方法是 explain 结果里没有 Using temporary 和 Using filesort；
-3. 如果 group by 需要统计的数据量不大，尽量只使用内存临时表；也可以通过适当调大 tmp\_table\_size 参数，来避免用到磁盘临时表；
+3. 如果 group by 需要统计的数据量不大，尽量只使用内存临时表；也可以通过适当调大 `tmp_table_size` 参数，来避免用到磁盘临时表；
 4. 如果数据量实在太大，使用 SQL\_BIG\_RESULT 这个提示，来告诉优化器直接使用排序算法得到 group by 的结果。
 
 最后，我给你留下一个思考题吧。

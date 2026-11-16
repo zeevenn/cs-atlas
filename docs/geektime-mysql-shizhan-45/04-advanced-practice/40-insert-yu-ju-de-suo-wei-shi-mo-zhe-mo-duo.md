@@ -31,7 +31,7 @@ insert into t values(null, 4,4);
 create table t2 like t
 ```
 
-现在，我们一起来看看为什么在可重复读隔离级别下，binlog\_format=statement 时执行：
+现在，我们一起来看看为什么在可重复读隔离级别下，`binlog_format`=statement 时执行：
 
 ```sql
 insert into t2(c,d) select c,d from t;
@@ -45,7 +45,7 @@ insert into t2(c,d) select c,d from t;
 
 实际的执行效果是，如果 session B 先执行，由于这个语句对表 t 主键索引加了(-∞,1]这个 next-key lock，会在语句执行完成后，才允许 session A 的 insert 语句执行。
 
-但如果没有锁的话，就可能出现 session B 的 insert 语句先执行，但是后写入 binlog 的情况。于是，在 binlog\_format=statement 的情况下，binlog 里面就记录了这样的语句序列：
+但如果没有锁的话，就可能出现 session B 的 insert 语句先执行，但是后写入 binlog 的情况。于是，在 `binlog_format`=statement 的情况下，binlog 里面就记录了这样的语句序列：
 
 ```sql
 insert into t values(-1,-1,-1);

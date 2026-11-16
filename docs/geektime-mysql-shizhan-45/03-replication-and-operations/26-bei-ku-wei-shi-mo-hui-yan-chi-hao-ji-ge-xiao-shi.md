@@ -28,7 +28,7 @@ title: "26 备库为什么会延迟好几个小时？"
 
 ![图 2 多线程模型](https://static001.geekbang.org/resource/image/bc/45/bcf75aa3b0f496699fd7885426bc6245.png)
 
-图 2 中，coordinator 就是原来的 sql\_thread, 不过现在它不再直接更新数据了，只负责读取中转日志和分发事务。真正更新日志的，变成了 worker 线程。而 work 线程的个数，就是由参数 slave\_parallel\_workers 决定的。根据我的经验，把这个值设置为 8\~16 之间最好（32 核物理机的情况），毕竟备库还有可能要提供读查询，不能把 CPU 都吃光了。
+图 2 中，coordinator 就是原来的 sql\_thread, 不过现在它不再直接更新数据了，只负责读取中转日志和分发事务。真正更新日志的，变成了 worker 线程。而 work 线程的个数，就是由参数 `slave_parallel_workers` 决定的。根据我的经验，把这个值设置为 8\~16 之间最好（32 核物理机的情况），毕竟备库还有可能要提供读查询，不能把 CPU 都吃光了。
 
 接下来，你需要先思考一个问题：事务能不能按照轮询的方式分发给各个 worker，也就是第一个事务分给 worker\_1，第二个事务发给 worker\_2 呢？
 
@@ -193,7 +193,7 @@ insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 
 ## MySQL 5.7 的并行复制策略
 
-在 MariaDB 并行复制实现之后，官方的 MySQL5.7 版本也提供了类似的功能，由参数 slave-parallel-type 来控制并行复制策略：
+在 MariaDB 并行复制实现之后，官方的 MySQL5.7 版本也提供了类似的功能，由参数 `slave-parallel-type` 来控制并行复制策略：
 
 1. 配置为 DATABASE，表示使用 MySQL 5.6 版本的按库并行策略；
 2. 配置为 LOGICAL\_CLOCK，表示的就是类似 MariaDB 的策略。不过，MySQL 5.7 这个策略，针对并行度做了优化。这个优化的思路也很有趣儿。
@@ -219,8 +219,8 @@ insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 
 我在第 23 篇文章，讲 binlog 的组提交的时候，介绍过两个参数：
 
-1. binlog\_group\_commit\_sync\_delay 参数，表示延迟多少微秒后才调用 fsync;
-2. binlog\_group\_commit\_sync\_no\_delay\_count 参数，表示累积多少次以后才调用 fsync。
+1. `binlog_group_commit_sync_delay` 参数，表示延迟多少微秒后才调用 fsync;
+2. `binlog_group_commit_sync_no_delay_count` 参数，表示累积多少次以后才调用 fsync。
 
 这两个参数是用于故意拉长 binlog 从 write 到 fsync 的时间，以此减少 binlog 的写盘次数。在 MySQL 5.7 的并行复制策略里，它们可以用来制造更多的「同时处于 prepare 阶段的事务」。这样就增加了备库复制的并行度。
 
@@ -230,7 +230,7 @@ insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 
 在 2018 年 4 月份发布的 MySQL 5.7.22 版本里，MySQL 增加了一个新的并行复制策略，基于 WRITESET 的并行复制。
 
-相应地，新增了一个参数 binlog-transaction-dependency-tracking，用来控制是否启用这个新策略。这个参数的可选值有以下三种。
+相应地，新增了一个参数 `binlog-transaction-dependency-tracking`，用来控制是否启用这个新策略。这个参数的可选值有以下三种。
 
 1. COMMIT\_ORDER，表示的就是前面介绍的，根据同时进入 prepare 和 commit 来判断是否可以并行的策略。
 2. WRITESET，表示的是对于事务涉及更新的每一行，计算出这一行的 hash 值，组成集合 writeset。如果两个事务没有操作相同的行，也就是说它们的 writeset 没有交集，就可以并行。
@@ -252,7 +252,7 @@ insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 
 在今天这篇文章中，我和你介绍了 MySQL 的各种多线程复制策略。
 
-为什么要有多线程复制呢？这是因为单线程复制的能力全面低于多线程复制，对于更新压力较大的主库，备库是可能一直追不上主库的。从现象上看就是，备库上 seconds\_behind\_master 的值越来越大。
+为什么要有多线程复制呢？这是因为单线程复制的能力全面低于多线程复制，对于更新压力较大的主库，备库是可能一直追不上主库的。从现象上看就是，备库上 `seconds_behind_master` 的值越来越大。
 
 在介绍完每个并行复制策略后，我还和你分享了不同策略的优缺点：
 
@@ -267,7 +267,7 @@ insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 
 假设一个 MySQL 5.7.22 版本的主库，单线程插入了很多数据，过了 3 个小时后，我们要给这个主库搭建一个相同版本的备库。
 
-这时候，你为了更快地让备库追上主库，要开并行复制。在 binlog-transaction-dependency-tracking 参数的 COMMIT\_ORDER、WRITESET 和 WRITE\_SESSION 这三个取值中，你会选择哪一个呢？
+这时候，你为了更快地让备库追上主库，要开并行复制。在 `binlog-transaction-dependency-tracking` 参数的 COMMIT\_ORDER、WRITESET 和 WRITE\_SESSION 这三个取值中，你会选择哪一个呢？
 
 你选择的原因是什么？如果设置另外两个参数，你认为会出现什么现象呢？
 

@@ -162,7 +162,7 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 然后，你可能马上就会问了，这个例子里表 t1 才 100 行，要是表 t1 是一个大表，join\_buffer 放不下怎么办呢？
 
-join\_buffer 的大小是由参数 join\_buffer\_size 设定的，默认值是 256k。 **如果放不下表 t1 的所有数据话，策略很简单，就是分段放。** 我把 join\_buffer\_size 改成 1200，再执行：
+join\_buffer 的大小是由参数 `join_buffer_size` 设定的，默认值是 256k。 **如果放不下表 t1 的所有数据话，策略很简单，就是分段放。** 我把 `join_buffer_size` 改成 1200，再执行：
 
 ```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
@@ -202,11 +202,11 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 当然，你会发现，在 N+λ\*N\*M 这个式子里，λ才是影响扫描行数的关键因素，这个值越小越好。
 
-刚刚我们说了 N 越大，分段数 K 越大。那么，N 固定的时候，什么参数会影响 K 的大小呢？（也就是λ的大小）答案是 join\_buffer\_size。join\_buffer\_size 越大，一次可以放入的行越多，分成的段数也就越少，对被驱动表的全表扫描次数就越少。
+刚刚我们说了 N 越大，分段数 K 越大。那么，N 固定的时候，什么参数会影响 K 的大小呢？（也就是λ的大小）答案是 `join_buffer_size`。`join_buffer_size` 越大，一次可以放入的行越多，分成的段数也就越少，对被驱动表的全表扫描次数就越少。
 
-这就是为什么，你可能会看到一些建议告诉你，如果你的 join 语句很慢，就把 join\_buffer\_size 改大。
+这就是为什么，你可能会看到一些建议告诉你，如果你的 join 语句很慢，就把 `join_buffer_size` 改大。
 
-理解了 MySQL 执行 join 的两种算法，现在我们再来试着 **回答文章开头的两个问题** 。
+理解了 MySQL 执行 join 的两种算法，现在我们再来试着 **回答文章开头的两个问题**。
 
 第一个问题：能不能使用 join 语句？
 
@@ -219,12 +219,12 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 1. 如果是 Index Nested-Loop Join 算法，应该选择小表做驱动表；
 2. 如果是 Block Nested-Loop Join 算法：
-   * 在 join\_buffer\_size 足够大的时候，是一样的；
-   * 在 join\_buffer\_size 不够大的时候（这种情况更常见），应该选择小表做驱动表。
+   * 在 `join_buffer_size` 足够大的时候，是一样的；
+   * 在 `join_buffer_size` 不够大的时候（这种情况更常见），应该选择小表做驱动表。
 
 所以，这个问题的结论就是，总是应该使用小表做驱动表。
 
-当然了，这里我需要说明下， **什么叫作小表** 。
+当然了，这里我需要说明下， **什么叫作小表**。
 
 我们前面的例子是没有加条件的。如果我在语句的 where 条件加上 t2.id<=50 这个限定条件，再来看下这两条语句：
 

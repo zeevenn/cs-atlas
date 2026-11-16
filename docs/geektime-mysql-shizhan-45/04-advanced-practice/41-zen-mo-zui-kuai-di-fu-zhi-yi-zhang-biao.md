@@ -46,7 +46,7 @@ mysqldump -h$host -P$port -u$user --add-locks=0 --no-create-info --single-transa
 
 这条命令中，主要参数含义如下：
 
-1. –single-transaction 的作用是，在导出数据的时候不需要对表 db1.t 加表锁，而是使用 START TRANSACTION WITH CONSISTENT SNAPSHOT 的方法；
+1. `–single-transaction` 的作用是，在导出数据的时候不需要对表 db1.t 加表锁，而是使用 START TRANSACTION WITH CONSISTENT SNAPSHOT 的方法；
 2. –add-locks 设置为 0，表示在输出的文件结果里，不增加 ``LOCK TABLES `t` WRITE;`` ；
 3. –no-create-info 的意思是，不需要导出表结构；
 4. –set-gtid-purged=off 表示的是，不输出跟 GTID 相关的信息；
@@ -58,7 +58,7 @@ mysqldump -h$host -P$port -u$user --add-locks=0 --no-create-info --single-transa
 
 可以看到，一条 INSERT 语句里面会包含多个 value 对，这是为了后续用这个文件来写入数据的时候，执行速度可以更快。
 
-如果你希望生成的文件中一条 INSERT 语句只插入一行数据的话，可以在执行 mysqldump 命令时，加上参数–skip-extended-insert。
+如果你希望生成的文件中一条 INSERT 语句只插入一行数据的话，可以在执行 mysqldump 命令时，加上参数 `–skip-extended-insert`。
 
 然后，你可以通过下面这条命令，将这些 INSERT 语句放到 db2 库里去执行。
 
@@ -84,7 +84,7 @@ select * from db1.t where a>900 into outfile '/server_tmp/t.csv';
 我们在使用这条语句时，需要注意如下几点。
 
 1. 这条语句会将结果保存在服务端。如果你执行命令的客户端和 MySQL 服务端不在同一个机器上，客户端机器的临时目录下是不会生成 t.csv 文件的。
-2. into outfile 指定了文件的生成位置（/server\_tmp/），这个位置必须受参数 secure\_file\_priv 的限制。参数 secure\_file\_priv 的可选值和作用分别是：
+2. into outfile 指定了文件的生成位置（/server\_tmp/），这个位置必须受参数 `secure_file_priv` 的限制。参数 `secure_file_priv` 的可选值和作用分别是：
    * 如果设置为 empty，表示不限制文件生成的位置，这是不安全的设置；
    * 如果设置为一个表示路径的字符串，就要求生成的文件只能放在这个指定的目录，或者它的子目录；
    * 如果设置为 NULL，就表示禁止在这个 MySQL 实例上执行 select … into outfile 操作。
@@ -106,7 +106,7 @@ load data infile '/server_tmp/t.csv' into table db2.t;
    * 若相同，则构造成一行，调用 InnoDB 引擎接口，写入到表中。
 4. 重复步骤 3，直到/server\_tmp/t.csv 整个文件读入完成，提交事务。
 
-你可能有一个疑问， **如果 binlog\_format=statement，这个 load 语句记录到 binlog 里以后，怎么在备库重放呢？**
+你可能有一个疑问， **如果 `binlog_format`=statement，这个 load 语句记录到 binlog 里以后，怎么在备库重放呢？**
 
 由于/server\_tmp/t.csv 文件只保存在主库所在的主机上，如果只是把这条语句原文写到 binlog 中，在备库执行的时候，备库的本地机器上没有这个文件，就会导致主备同步停止。
 
@@ -125,9 +125,9 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 注意，这里备库执行的 load data 语句里面，多了一个 `local`。它的意思是「将执行这条命令的客户端所在机器的本地文件/tmp/SQL\_LOAD\_MB-1-0 的内容，加载到目标表 db2.t 中」。
 
-也就是说， **load data 命令有两种用法** ：
+也就是说， **load data 命令有两种用法**：
 
-1. 不加 `local`，是读取服务端的文件，这个文件必须在 secure\_file\_priv 指定的目录或子目录下；
+1. 不加 `local`，是读取服务端的文件，这个文件必须在 `secure_file_priv` 指定的目录或子目录下；
 2. 加上 `local`，读取的是客户端的文件，只要 mysql 客户端有访问这个文件的权限即可。这时候，MySQL 客户端会先把本地文件传给服务端，然后执行上述的 load data 流程。
 
 另外需要注意的是， **select …into outfile 方法不会生成表结构文件** , 所以我们导数据时还需要单独的命令得到表结构定义。mysqldump 提供了一个–tab 参数，可以同时导出表结构定义文件和 csv 数据文件。这条命令的使用方法如下：
@@ -136,7 +136,7 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 mysqldump -h$host -P$port -u$user ---single-transaction  --set-gtid-purged=OFF db1 t --where="a>900" --tab=$secure_file_priv
 ```
 
-这条命令会在$secure\_file\_priv 定义的目录下，创建一个 t.sql 文件保存建表语句，同时创建一个 t.txt 文件保存 CSV 数据。
+这条命令会在$`secure_file_priv` 定义的目录下，创建一个 t.sql 文件保存建表语句，同时创建一个 t.txt 文件保存 CSV 数据。
 
 ## 物理拷贝方法
 
@@ -185,7 +185,7 @@ mysqldump -h$host -P$port -u$user ---single-transaction  --set-gtid-purged=OFF d
 
 最后，我给你留下一个思考题吧。
 
-我们前面介绍 binlog\_format=statement 的时候，binlog 记录的 load data 命令是带 local 的。既然这条命令是发送到备库去执行的，那么备库执行的时候也是本地执行，为什么需要这个 local 呢？如果写到 binlog 中的命令不带 local，又会出现什么问题呢？
+我们前面介绍 `binlog_format`=statement 的时候，binlog 记录的 load data 命令是带 local 的。既然这条命令是发送到备库去执行的，那么备库执行的时候也是本地执行，为什么需要这个 local 呢？如果写到 binlog 中的命令不带 local，又会出现什么问题呢？
 
 你可以把你的分析写在评论区，我会在下一篇文章的末尾和你讨论这个问题。感谢你的收听，也欢迎你把这篇文章分享给更多的朋友一起阅读。
 

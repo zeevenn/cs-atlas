@@ -58,9 +58,9 @@ Extra 这个字段中的 `Using filesort` 表示的就是需要排序，MySQL �
 
 ![图 3 全字段排序](https://static001.geekbang.org/resource/image/6c/72/6c821828cddf46670f9d56e126e3e772.jpg)
 
-图中按 name 排序这个动作，可能在内存中完成，也可能需要使用外部排序，这取决于排序所需的内存和参数 sort\_buffer\_size。
+图中按 name 排序这个动作，可能在内存中完成，也可能需要使用外部排序，这取决于排序所需的内存和参数 `sort_buffer_size`。
 
-sort\_buffer\_size，就是 MySQL 为排序开辟的内存（sort\_buffer）的大小。如果要排序的数据量小于 sort\_buffer\_size，排序就在内存中完成。但如果排序数据量太大，内存放不下，则不得不利用磁盘临时文件辅助排序。
+`sort_buffer_size`，就是 MySQL 为排序开辟的内存（sort\_buffer）的大小。如果要排序的数据量小于 `sort_buffer_size`，排序就在内存中完成。但如果排序数据量太大，内存放不下，则不得不利用磁盘临时文件辅助排序。
 
 你可以用下面介绍的方法，来确定一个排序语句是否使用了临时文件。
 
@@ -90,9 +90,9 @@ select @b-@a;
 
 number\_of\_tmp\_files 表示的是，排序过程中使用的临时文件数。你一定奇怪，为什么需要 12 个文件？内存放不下时，就需要使用外部排序，外部排序一般使用归并排序算法。可以这么简单理解， **MySQL 将需要排序的数据分成 12 份，每一份单独排序后存在这些临时文件中。然后把这 12 个有序文件再合并成一个有序的大文件。**
 
-如果 sort\_buffer\_size 超过了需要排序的数据量的大小，number\_of\_tmp\_files 就是 0，表示排序可以直接在内存中完成。
+如果 `sort_buffer_size` 超过了需要排序的数据量的大小，number\_of\_tmp\_files 就是 0，表示排序可以直接在内存中完成。
 
-否则就需要放在临时文件中排序。sort\_buffer\_size 越小，需要分成的份数越多，number\_of\_tmp\_files 的值就越大。
+否则就需要放在临时文件中排序。`sort_buffer_size` 越小，需要分成的份数越多，number\_of\_tmp\_files 的值就越大。
 
 接下来，我再和你解释一下图 4 中其他两个值的意思。
 
@@ -102,9 +102,9 @@ sort\_mode 里面的 packed\_additional\_fields 的意思是，排序过程对�
 
 同时，最后一个查询语句 select @b-@a 的返回结果是 4000，表示整个执行过程只扫描了 4000 行。
 
-这里需要注意的是，为了避免对结论造成干扰，我把 internal\_tmp\_disk\_storage\_engine 设置成 MyISAM。否则，select @b-@a 的结果会显示为 4001。
+这里需要注意的是，为了避免对结论造成干扰，我把 `internal_tmp_disk_storage_engine` 设置成 MyISAM。否则，select @b-@a 的结果会显示为 4001。
 
-这是因为查询 OPTIMIZER\_TRACE 这个表时，需要用到临时表，而 internal\_tmp\_disk\_storage\_engine 的默认值是 InnoDB。如果使用的是 InnoDB 引擎的话，把数据从临时表取出来的时候，会让 Innodb\_rows\_read 的值加 1。
+这是因为查询 OPTIMIZER\_TRACE 这个表时，需要用到临时表，而 `internal_tmp_disk_storage_engine` 的默认值是 InnoDB。如果使用的是 InnoDB 引擎的话，把数据从临时表取出来的时候，会让 Innodb\_rows\_read 的值加 1。
 
 ## rowid 排序
 
@@ -120,9 +120,9 @@ sort\_mode 里面的 packed\_additional\_fields 的意思是，排序过程对�
 SET max_length_for_sort_data = 16;
 ```
 
-max\_length\_for\_sort\_data，是 MySQL 中专门控制用于排序的行数据的长度的一个参数。它的意思是，如果单行的长度超过这个值，MySQL 就认为单行太大，要换一个算法。
+`max_length_for_sort_data`，是 MySQL 中专门控制用于排序的行数据的长度的一个参数。它的意思是，如果单行的长度超过这个值，MySQL 就认为单行太大，要换一个算法。
 
-city、name、age 这三个字段的定义总长度是 36，我把 max\_length\_for\_sort\_data 设置为 16，我们再来看看计算过程有什么改变。
+city、name、age 这三个字段的定义总长度是 36，我把 `max_length_for_sort_data` 设置为 16，我们再来看看计算过程有什么改变。
 
 新的算法放入 sort\_buffer 的字段，只有要排序的列（即 name 字段）和主键 id。
 
@@ -294,13 +294,13 @@ session A 的第二个 select 语句是一致性读（快照读)，它是不能�
 
 **补充说明：**
 
-上面我们的验证结果都是在 binlog\_format=statement 格式下进行的。
+上面我们的验证结果都是在 `binlog_format`=statement 格式下进行的。
 
-@didiren 补充了一个 case， 如果是 binlog\_format=row 并且 binlog\_row\_image=FULL 的时候，由于 MySQL 需要在 binlog 里面记录所有的字段，所以在读数据的时候就会把所有数据都读出来了。
+@didiren 补充了一个 case， 如果是 `binlog_format`=row 并且 `binlog_row_image`=FULL 的时候，由于 MySQL 需要在 binlog 里面记录所有的字段，所以在读数据的时候就会把所有数据都读出来了。
 
 根据上面说的规则，既然读了数据，就会判断， 因此在这时候，select \* from t where id=1，结果就是返回 (1,2)。
 
-同理，如果是 binlog\_row\_image=NOBLOB, 会读出除 blob 外的所有字段，在我们这个例子里，结果还是返回 (1,2)。
+同理，如果是 `binlog_row_image`=NOBLOB, 会读出除 blob 外的所有字段，在我们这个例子里，结果还是返回 (1,2)。
 
 对应的代码如图 15 所示。这是 MySQL 5.6 版本引入的，在此之前我没有看过。所以，特此说明。
 
@@ -315,6 +315,6 @@ session A 的第二个 select 语句是一致性读（快照读)，它是不能�
 > @Gavin 、@melon、@阿建 等同学提到了锁验证法；\
 > @郭江伟 同学提到了两个点，都非常好，有去实际验证。结论是这样的：\
 > 第一，hexdump 看出来没改应该是 WAL 机制生效了，要过一会儿，或者把库 shutdown 看看。\
-> 第二，binlog 没写是 MySQL Server 层知道行的值没变，所以故意不写的，这个是在 row 格式下的策略。你可以把 binlog\_format 改成 statement 再验证下。
+> 第二，binlog 没写是 MySQL Server 层知道行的值没变，所以故意不写的，这个是在 row 格式下的策略。你可以把 `binlog_format` 改成 statement 再验证下。
 
 ![上期问题时间（配图 17）](https://static001.geekbang.org/resource/image/09/77/09c1073f99cf71d2fb162a716b5fa577.jpg)

@@ -23,7 +23,7 @@ title: "31 误删数据后除了跑路，还能怎么办？"
 
 在[第 24 篇文章](https://time.geekbang.org/column/article/76446)中，我们提到如果是使用 delete 语句误删了数据行，可以用 Flashback 工具通过闪回把数据恢复回来。
 
-Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重放。而能够使用这个方案的前提是，需要确保 binlog\_format=row 和 binlog\_row\_image=FULL。
+Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重放。而能够使用这个方案的前提是，需要确保 `binlog_format`=row 和 `binlog_row_image`=FULL。
 
 具体恢复数据时，对单个事务做如下处理：
 
@@ -57,12 +57,12 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 这是因为，一个在执行线上逻辑的主库，数据状态的变更往往是有关联的。可能由于发现数据问题的时间晚了一点儿，就导致已经在之前误操作的基础上，业务代码逻辑又继续修改了其他数据。所以，如果这时候单独恢复这几行数据，而又未经确认的话，就可能会出现对数据的二次破坏。
 
-当然， **我们不止要说误删数据的事后处理办法，更重要是要做到事前预防** 。我有以下两个建议：
+当然， **我们不止要说误删数据的事后处理办法，更重要是要做到事前预防**。我有以下两个建议：
 
-1. 把 sql\_safe\_updates 参数设置为 on。这样一来，如果我们忘记在 delete 或者 update 语句中写 where 条件，或者 where 条件里面没有包含索引字段的话，这条语句的执行就会报错。
+1. 把 `sql_safe_updates` 参数设置为 on。这样一来，如果我们忘记在 delete 或者 update 语句中写 where 条件，或者 where 条件里面没有包含索引字段的话，这条语句的执行就会报错。
 2. 代码上线前，必须经过 SQL 审计。
 
-你可能会说，设置了 sql\_safe\_updates=on，如果我真的要把一个小表的数据全部删掉，应该怎么办呢？
+你可能会说，设置了 `sql_safe_updates`=on，如果我真的要把一个小表的数据全部删掉，应该怎么办呢？
 
 如果你确定这个删除操作没问题的话，可以在 delete 语句中加上 where 条件，比如 where id>=0。
 
@@ -70,7 +70,7 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 使用 delete 命令删除的数据，你还可以用 Flashback 来恢复。而使用 truncate /drop table 和 drop database 命令删除的数据，就没办法通过 Flashback 来恢复了。为什么呢？
 
-这是因为，即使我们配置了 binlog\_format=row，执行这三个命令时，记录的 binlog 还是 statement 格式。binlog 里面就只有一个 truncate/drop 语句，这些信息是恢复不出数据的。
+这是因为，即使我们配置了 `binlog_format`=row，执行这三个命令时，记录的 binlog 还是 statement 格式。binlog 里面就只有一个 truncate/drop 语句，这些信息是恢复不出数据的。
 
 那么，如果我们真的是使用这几条命令误删数据了，又该怎么办呢？
 
@@ -93,8 +93,8 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 1. 为了加速数据恢复，如果这个临时库上有多个数据库，你可以在使用 mysqlbinlog 命令时，加上一个–database 参数，用来指定误删表所在的库。这样，就避免了在恢复数据时还要应用其他库日志的情况。
 2. 在应用日志的时候，需要跳过 12 点误操作的那个语句的 binlog：
-   * 如果原实例没有使用 GTID 模式，只能在应用到包含 12 点的 binlog 文件的时候，先用–stop-position 参数执行到误操作之前的日志，然后再用–start-position 从误操作之后的日志继续执行；
-   * 如果实例使用了 GTID 模式，就方便多了。假设误操作命令的 GTID 是 gtid1，那么只需要执行 set gtid\_next=gtid1;begin;commit; 先把这个 GTID 加到临时实例的 GTID 集合，之后按顺序执行 binlog 的时候，就会自动跳过误操作的语句。
+   * 如果原实例没有使用 GTID 模式，只能在应用到包含 12 点的 binlog 文件的时候，先用 `–stop-position` 参数执行到误操作之前的日志，然后再用 `–start-position` 从误操作之后的日志继续执行；
+   * 如果实例使用了 GTID 模式，就方便多了。假设误操作命令的 GTID 是 gtid1，那么只需要执行 set `gtid_next`=gtid1;begin;commit; 先把这个 GTID 加到临时实例的 GTID 集合，之后按顺序执行 binlog 的时候，就会自动跳过误操作的语句。
 
 不过，即使这样，使用 mysqlbinlog 方法恢复数据还是不够快，主要原因有两个：
 
@@ -104,7 +104,7 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 **一种加速的方法是，** 在用备份恢复出临时实例之后，将这个临时实例设置成线上备库的从库，这样：
 
 1. 在 start slave 之前，先通过执行﻿\
-   ﻿change replication filter replicate\_do\_table = (tbl\_name) 命令，就可以让临时库只同步误操作的表；
+   ﻿change replication filter `replicate_do_table` = (tbl\_name) 命令，就可以让临时库只同步误操作的表；
 2. 这样做也可以用上并行复制技术，来加速整个数据恢复过程。
 
 这个过程的示意图如下所示。
@@ -147,7 +147,7 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 一般的主备复制结构存在的问题是，如果主库上有个表被误删了，这个命令很快也会被发给所有从库，进而导致所有从库的数据表也都一起被误删了。
 
-延迟复制的备库是一种特殊的备库，通过 CHANGE MASTER TO MASTER\_DELAY = N 命令，可以指定这个备库持续保持跟主库有 N 秒的延迟。
+延迟复制的备库是一种特殊的备库，通过 CHANGE MASTER TO `MASTER_DELAY` = N 命令，可以指定这个备库持续保持跟主库有 N 秒的延迟。
 
 比如你把 N 设置为 3600，这就代表了如果主库上有数据被误删了，并且在 1 小时内发现了这个误操作命令，这个命令就还没有在这个延迟复制的备库执行。这时候到这个备库上执行 stop slave，再通过之前介绍的方法，跳过误操作命令，就可以恢复出需要的数据。
 

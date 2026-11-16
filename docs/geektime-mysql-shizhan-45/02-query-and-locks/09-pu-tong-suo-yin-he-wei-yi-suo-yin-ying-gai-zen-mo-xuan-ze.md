@@ -69,11 +69,11 @@ select name from CUser where id_card = 'xxxxxxxyyyyyyzzzzz';
 
 因此，唯一索引的更新就不能使用 change buffer，实际上也只有普通索引可以使用。
 
-change buffer 用的是 buffer pool 里的内存，因此不能无限增大。change buffer 的大小，可以通过参数 innodb\_change\_buffer\_max\_size 来动态设置。这个参数设置为 50 的时候，表示 change buffer 的大小最多只能占用 buffer pool 的 50%。
+change buffer 用的是 buffer pool 里的内存，因此不能无限增大。change buffer 的大小，可以通过参数 `innodb_change_buffer_max_size` 来动态设置。这个参数设置为 50 的时候，表示 change buffer 的大小最多只能占用 buffer pool 的 50%。
 
 现在，你已经理解了 change buffer 的机制，那么我们再一起来看看 **如果要在这张表中插入一个新记录(4,400)的话，InnoDB 的处理流程是怎样的。**
 
-第一种情况是， **这个记录要更新的目标页在内存中** 。这时，InnoDB 的处理流程如下：
+第一种情况是， **这个记录要更新的目标页在内存中**。这时，InnoDB 的处理流程如下：
 
 * 对于唯一索引来说，找到 3 和 5 之间的位置，判断到没有冲突，插入这个值，语句执行结束；
 * 对于普通索引来说，找到 3 和 5 之间的位置，插入这个值，语句执行结束。
@@ -82,7 +82,7 @@ change buffer 用的是 buffer pool 里的内存，因此不能无限增大。ch
 
 但，这不是我们关注的重点。
 
-第二种情况是， **这个记录要更新的目标页不在内存中** 。这时，InnoDB 的处理流程如下：
+第二种情况是， **这个记录要更新的目标页不在内存中**。这时，InnoDB 的处理流程如下：
 
 * 对于唯一索引来说，需要将数据页读入内存，判断到没有冲突，插入这个值，语句执行结束；
 * 对于普通索引来说，则是将更新记录在 change buffer，语句执行就结束了。

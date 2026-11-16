@@ -69,7 +69,7 @@ select * from t1 where a>=1 and a<=100;
 2. 将 read\_rnd\_buffer 中的 id 进行递增排序；
 3. 排序后的 id 数组，依次到主键 id 索引中查记录，并作为结果返回。
 
-这里，read\_rnd\_buffer 的大小是由 read\_rnd\_buffer\_size 参数控制的。如果步骤 1 中，read\_rnd\_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read\_rnd\_buffer。之后继续找索引 a 的下个记录，并继续循环。
+这里，read\_rnd\_buffer 的大小是由 `read_rnd_buffer_size` 参数控制的。如果步骤 1 中，read\_rnd\_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read\_rnd\_buffer。之后继续找索引 a 的下个记录，并继续循环。
 
 另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，需要设置 `set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr\_cost\_based 设置为 off，就是固定使用 MRR 了。）
 
@@ -137,7 +137,7 @@ set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 
 **大表 join 操作虽然对 IO 有影响，但是在语句执行结束后，对 IO 的影响也就结束了。但是，对 Buffer Pool 的影响就是持续性的，需要依靠后续的查询请求慢慢恢复内存命中率。**
 
-为了减少这种影响，你可以考虑增大 join\_buffer\_size 的值，减少对被驱动表的扫描次数。
+为了减少这种影响，你可以考虑增大 `join_buffer_size` 的值，减少对被驱动表的扫描次数。
 
 也就是说，BNL 算法对系统的影响主要包括三个方面：
 
@@ -163,7 +163,7 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 
 但是，如果使用 BNL 算法来 join 的话，这个语句的执行流程是这样的：
 
-1. 把表 t1 的所有字段取出来，存入 join\_buffer 中。这个表只有 1000 行，join\_buffer\_size 默认值是 256k，可以完全存入。
+1. 把表 t1 的所有字段取出来，存入 join\_buffer 中。这个表只有 1000 行，`join_buffer_size` 默认值是 256k，可以完全存入。
 2. 扫描表 t2，取出每一行数据跟 join\_buffer 中的数据进行对比，
    * 如果不满足 t1.b=t2.b，则跳过；
    * 如果满足 t1.b=t2.b, 再判断其他条件，也就是是否满足 t2.b 处于\[1,2000]的条件，如果是，就作为结果集的一部分返回，否则跳过。

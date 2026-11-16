@@ -32,7 +32,7 @@ title: "24 MySQL 是怎么保证主备一致的？"
 
 这个问题，你不用担心。因为 readonly 设置对超级(super)权限用户是无效的，而用于同步更新的线程，就拥有超级权限。
 
-接下来，我们再看看 **节点 A 到 B 这条线的内部流程是什么样的** 。图 2 中画出的就是一个 update 语句在节点 A 执行，然后同步到节点 B 的完整流程图。
+接下来，我们再看看 **节点 A 到 B 这条线的内部流程是什么样的**。图 2 中画出的就是一个 update 语句在节点 A 执行，然后同步到节点 B 的完整流程图。
 
 ![图 2 主备流程图](https://static001.geekbang.org/resource/image/a6/a3/a66c154c1bc51e071dd2cc8c1d6ca6a3.png)
 
@@ -81,7 +81,7 @@ insert into t values(5,5,'2018-11-09');
 delete from t /*comment*/  where a>=4 and t_modified<='2018-11-10' limit 1;
 ```
 
-当 binlog\_format=statement 时，binlog 里面记录的就是 SQL 语句的原文。你可以用
+当 `binlog_format`=statement 时，binlog 里面记录的就是 SQL 语句的原文。你可以用
 
 ```sql
 show binlog events in 'master.000001';
@@ -93,7 +93,7 @@ show binlog events in 'master.000001';
 
 现在，我们来看一下图 3 的输出结果。
 
-* 第一行 SET @@SESSION.GTID\_NEXT='ANONYMOUS’ 你可以先忽略，后面文章我们会在介绍主备切换的时候再提到；
+* 第一行 SET @@SESSION.`GTID_NEXT`='ANONYMOUS’ 你可以先忽略，后面文章我们会在介绍主备切换的时候再提到；
 * 第二行是一个 BEGIN，跟第四行的 commit 对应，表示中间是一个事务；
 * 第三行就是真实执行的语句了。可以看到，在真实执行的 delete 命令之前，还有一个 `` use `test` `` 命令。这条命令不是我们主动执行的，而是 MySQL 根据当前要操作的表所在的数据库，自行添加的。这样做可以保证日志传到备库去执行的时候，不论当前的工作线程在哪个库里，都能够正确地更新到 test 库的表 t。\
   use 'test’ 命令之后的 delete 语句，就是我们输入的 SQL 原文了。可以看到，binlog「忠实」地记录了 SQL 命令，甚至连注释也一并记录了。
@@ -112,7 +112,7 @@ show binlog events in 'master.000001';
 
 由于 statement 格式下，记录到 binlog 里的是语句原文，因此可能会出现这样一种情况：在主库执行这条 SQL 语句的时候，用的是索引 a；而在备库执行这条 SQL 语句的时候，却使用了索引 t\_modified。因此，MySQL 认为这样写是有风险的。
 
-那么，如果我把 binlog 的格式改为 binlog\_format=‘row’， 是不是就没有这个问题了呢？我们先来看看这时候 binog 中的内容吧。
+那么，如果我把 binlog 的格式改为 `binlog_format`=‘row’， 是不是就没有这个问题了呢？我们先来看看这时候 binog 中的内容吧。
 
 ![图 5 row 格式 binlog 示例](https://static001.geekbang.org/resource/image/d6/26/d67a38db154afff610ae3bb64e266826.png)
 
@@ -121,7 +121,7 @@ show binlog events in 'master.000001';
 1. Table\_map event，用于说明接下来要操作的表是 test 库的表 t;
 2. Delete\_rows event，用于定义删除的行为。
 
-其实，我们通过图 5 是看不到详细信息的，还需要借助 mysqlbinlog 工具，用下面这个命令解析和查看 binlog 中的内容。因为图 5 中的信息显示，这个事务的 binlog 是从 8900 这个位置开始的，所以可以用 start-position 参数来指定从这个位置的日志开始解析。
+其实，我们通过图 5 是看不到详细信息的，还需要借助 mysqlbinlog 工具，用下面这个命令解析和查看 binlog 中的内容。因为图 5 中的信息显示，这个事务的 binlog 是从 8900 这个位置开始的，所以可以用 `start-position` 参数来指定从这个位置的日志开始解析。
 
 ```text
 mysqlbinlog  -vv data/master.000001 --start-position=8900;
@@ -131,14 +131,14 @@ mysqlbinlog  -vv data/master.000001 --start-position=8900;
 
 从这个图中，我们可以看到以下几个信息：
 
-* server id 1，表示这个事务是在 server\_id=1 的这个库上执行的。
-* 每个 event 都有 CRC32 的值，这是因为我把参数 binlog\_checksum 设置成了 CRC32。
+* server id 1，表示这个事务是在 `server_id`=1 的这个库上执行的。
+* 每个 event 都有 CRC32 的值，这是因为我把参数 `binlog_checksum` 设置成了 CRC32。
 * Table\_map event 跟在图 5 中看到的相同，显示了接下来要打开的表，map 到数字 226。现在我们这条 SQL 语句只操作了一张表，如果要操作多张表呢？每个表都有一个对应的 Table\_map event、都会 map 到一个单独的数字，用于区分对不同表的操作。
 * 我们在 mysqlbinlog 的命令中，使用了-vv 参数是为了把内容都解析出来，所以从结果里面可以看到各个字段的值（比如，@1=4、 @2=4 这些值）。
-* binlog\_row\_image 的默认配置是 FULL，因此 Delete\_event 里面，包含了删掉的行的所有字段的值。如果把 binlog\_row\_image 设置为 MINIMAL，则只会记录必要的信息，在这个例子里，就是只会记录 id=4 这个信息。
+* `binlog_row_image` 的默认配置是 FULL，因此 Delete\_event 里面，包含了删掉的行的所有字段的值。如果把 `binlog_row_image` 设置为 MINIMAL，则只会记录必要的信息，在这个例子里，就是只会记录 id=4 这个信息。
 * 最后的 Xid event，用于表示事务被正确地提交了。
 
-你可以看到，当 binlog\_format 使用 row 格式的时候，binlog 里面记录了真实删除行的主键 id，这样 binlog 传到备库去的时候，就肯定会删除 id=4 的行，不会有主备删除不同行的问题。
+你可以看到，当 `binlog_format` 使用 row 格式的时候，binlog 里面记录了真实删除行的主键 id，这样 binlog 传到备库去的时候，就肯定会删除 id=4 的行，不会有主备删除不同行的问题。
 
 ## 为什么会有 mixed 格式的 binlog？
 
@@ -154,7 +154,7 @@ mysqlbinlog  -vv data/master.000001 --start-position=8900;
 
 比如我们这个例子，设置为 mixed 后，就会记录为 row 格式；而如果执行的语句去掉 limit 1，就会记录为 statement 格式。
 
-当然我要说的是，现在越来越多的场景要求把 MySQL 的 binlog 格式设置成 row。这么做的理由有很多，我来给你举一个可以直接看出来的好处： **恢复数据** 。
+当然我要说的是，现在越来越多的场景要求把 MySQL 的 binlog 格式设置成 row。这么做的理由有很多，我来给你举一个可以直接看出来的好处： **恢复数据**。
 
 接下来，我们就分别从 delete、insert 和 update 这三种 SQL 语句的角度，来看看数据恢复的问题。
 
@@ -212,7 +212,7 @@ mysqlbinlog master.000001  --start-position=2738 --stop-position=2973 | mysql -h
 
 但是，双 M 结构还有一个问题需要解决。
 
-业务逻辑在节点 A 上更新了一条语句，然后再把生成的 binlog 发给节点 B，节点 B 执行完这条更新语句后也会生成 binlog。（我建议你把参数 log\_slave\_updates 设置为 on，表示备库执行 relay log 后生成 binlog）。
+业务逻辑在节点 A 上更新了一条语句，然后再把生成的 binlog 发给节点 B，节点 B 执行完这条更新语句后也会生成 binlog。（我建议你把参数 `log_slave_updates` 设置为 on，表示备库执行 relay log 后生成 binlog）。
 
 那么，如果节点 A 同时是节点 B 的备库，相当于又把节点 B 新生成的 binlog 拿过来执行了一次，然后节点 A 和 B 间，会不断地循环执行这个更新语句，也就是循环复制了。这个要怎么解决呢？
 
@@ -253,14 +253,14 @@ binlog 在 MySQL 的各种高可用方案上扮演了重要角色。今天介绍
 3. 用备份恢复主库的副本，应用 binlog 的过程，这个跟上一种场景类似。
 4. 批量导入数据的时候。
 
-一般情况下，把生产库改成「非双 1」配置，是设置 innodb\_flush\_logs\_at\_trx\_commit=2、sync\_binlog=1000。
+一般情况下，把生产库改成「非双 1」配置，是设置 innodb\_flush\_logs\_at\_trx\_commit=2、`sync_binlog`=1000。
 
 评论区留言点赞板：
 
-> @way 同学提到了一个有趣的现象，由于从库设置了 binlog\_group\_commit\_sync\_delay 和 binlog\_group\_commit\_sync\_no\_delay\_count 导致一直延迟的情况。我们在主库设置这两个参数，是为了减少 binlog 的写盘压力。备库这么设置，尤其在「快要追上」的时候，就反而会受这两个参数的拖累。一般追主备就用「非双 1」（追上记得改回来）。
+> @way 同学提到了一个有趣的现象，由于从库设置了 `binlog_group_commit_sync_delay` 和 `binlog_group_commit_sync_no_delay_count` 导致一直延迟的情况。我们在主库设置这两个参数，是为了减少 binlog 的写盘压力。备库这么设置，尤其在「快要追上」的时候，就反而会受这两个参数的拖累。一般追主备就用「非双 1」（追上记得改回来）。
 >
-> @一大只 同学验证了在 sync\_binlog=0 的情况下，设置 sync\_delay 和 sync\_no\_delay\_count 的现象，点赞这种发现边界的意识和手动验证的好习惯。是这样的：sync\_delay 和 sync\_no\_delay\_count 的逻辑先走，因此该等还是会等。等到满足了这两个条件之一，就进入 sync\_binlog 阶段。这时候如果判断 sync\_binlog=0，就直接跳过，还是不调 fsync。
+> @一大只 同学验证了在 `sync_binlog`=0 的情况下，设置 sync\_delay 和 sync\_no\_delay\_count 的现象，点赞这种发现边界的意识和手动验证的好习惯。是这样的：sync\_delay 和 sync\_no\_delay\_count 的逻辑先走，因此该等还是会等。等到满足了这两个条件之一，就进入 `sync_binlog` 阶段。这时候如果判断 `sync_binlog`=0，就直接跳过，还是不调 fsync。
 >
-> @锅子 同学提到，设置 sync\_binlog=0 的时候，还是可以看到 binlog 文件马上做了修改。这个是对的，我们说「写到了 page cache」，就是文件系统的 page cache。而你用 ls 命令看到的就是文件系统返回的结果。
+> @锅子 同学提到，设置 `sync_binlog`=0 的时候，还是可以看到 binlog 文件马上做了修改。这个是对的，我们说「写到了 page cache」，就是文件系统的 page cache。而你用 ls 命令看到的就是文件系统返回的结果。
 
 ![上期问题时间（配图 11）](https://static001.geekbang.org/resource/image/09/77/09c1073f99cf71d2fb162a716b5fa577.jpg)

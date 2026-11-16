@@ -81,11 +81,11 @@ title: "28 读写分离有哪些坑？"
 
 要确保备库无延迟，通常有三种做法。
 
-通过前面的[第 25 篇](https://time.geekbang.org/column/article/76795)文章，我们知道 show slave status 结果里的 seconds\_behind\_master 参数的值，可以用来衡量主备延迟时间的长短。
+通过前面的[第 25 篇](https://time.geekbang.org/column/article/76795)文章，我们知道 show slave status 结果里的 `seconds_behind_master` 参数的值，可以用来衡量主备延迟时间的长短。
 
-所以 **第一种确保主备无延迟的方法是，** 每次从库执行查询请求前，先判断 seconds\_behind\_master 是否已经等于 0。如果还不等于 0 ，那就必须等到这个参数变为 0 才能执行查询请求。
+所以 **第一种确保主备无延迟的方法是，** 每次从库执行查询请求前，先判断 `seconds_behind_master` 是否已经等于 0。如果还不等于 0 ，那就必须等到这个参数变为 0 才能执行查询请求。
 
-seconds\_behind\_master 的单位是秒，如果你觉得精度不够的话，还可以采用对比位点和 GTID 的方法来确保主备无延迟，也就是我们接下来要说的第二和第三种方法。
+`seconds_behind_master` 的单位是秒，如果你觉得精度不够的话，还可以采用对比位点和 GTID 的方法来确保主备无延迟，也就是我们接下来要说的第二和第三种方法。
 
 如图 3 所示，是一个 show slave status 结果的部分截图。
 
@@ -108,7 +108,7 @@ seconds\_behind\_master 的单位是秒，如果你觉得精度不够的话，�
 
 如果这两个集合相同，也表示备库接收到的日志都已经同步完成。
 
-可见，对比位点和对比 GTID 这两种方法，都要比判断 seconds\_behind\_master 是否为 0 更准确。
+可见，对比位点和对比 GTID 这两种方法，都要比判断 `seconds_behind_master` 是否为 0 更准确。
 
 在执行查询请求之前，先判断从库是否同步完成的方法，相比于 sleep 方案，准确度确实提升了不少，但还是没有达到精确的程度。为什么这么说呢？
 
@@ -252,7 +252,7 @@ MySQL 中同样提供了一个类似的命令：
 
 在上面的第一步中，trx1 事务更新完成后，从返回包直接获取这个事务的 GTID。问题是，怎么能够让 MySQL 在执行事务后，返回包中带上 GTID 呢？
 
-你只需要将参数 session\_track\_gtids 设置为 OWN\_GTID，然后通过 API 接口 mysql\_session\_track\_get\_first 从返回包解析出 GTID 的值即可。
+你只需要将参数 `session_track_gtids` 设置为 OWN\_GTID，然后通过 API 接口 mysql\_session\_track\_get\_first 从返回包解析出 GTID 的值即可。
 
 在专栏的[第一篇文章](https://time.geekbang.org/column/article/68319)中，我介绍 mysql\_reset\_connection 的时候，评论区有同学留言问这类接口应该怎么使用。
 
@@ -294,17 +294,17 @@ MySQL 中同样提供了一个类似的命令：
 
 @某、人同学给了很详细的分析，我把他的回答略做修改贴过来。
 
-1. 如果业务允许主从不一致的情况，那么可以在主库上先执行 show global variables like ‘gtid\_purged’，得到主库已经删除的 GTID 集合，假设是 gtid\_purged1；然后先在从库上执行 reset master，再执行 set global gtid\_purged =‘gtid\_purged1’；最后执行 start slave，就会从主库现存的 binlog 开始同步。binlog 缺失的那一部分，数据在从库上就可能会有丢失，造成主从不一致。
+1. 如果业务允许主从不一致的情况，那么可以在主库上先执行 show global variables like ‘`gtid_purged`’，得到主库已经删除的 GTID 集合，假设是 gtid\_purged1；然后先在从库上执行 reset master，再执行 set global `gtid_purged` =‘gtid\_purged1’；最后执行 start slave，就会从主库现存的 binlog 开始同步。binlog 缺失的那一部分，数据在从库上就可能会有丢失，造成主从不一致。
 2. 如果需要主从数据一致的话，最好还是通过重新搭建从库来做。
 3. 如果有其他的从库保留有全量的 binlog 的话，可以把新的从库先接到这个保留了全量 binlog 的从库，追上日志以后，如果有需要，再接回主库。
 4. 如果 binlog 有备份的情况，可以先在从库上应用缺失的 binlog，然后再执行 start slave。
 
 评论区留言点赞板：
 
-> @悟空 同学级联实验，验证了 seconds\_behind\_master 的计算逻辑。
+> @悟空 同学级联实验，验证了 `seconds_behind_master` 的计算逻辑。
 >
 > @\_CountingStars 问了一个好问题：MySQL 是怎么快速定位 binlog 里面的某一个 GTID 位置的？答案是，在 binlog 文件头部的 Previous\_gtids 可以解决这个问题。
 >
-> @王朋飞 同学问了一个好问题，sql\_slave\_skip\_counter 跳过的是一个 event，由于 MySQL 总不能执行一半的事务，所以既然跳过了一个 event，就会跳到这个事务的末尾，因此 set global sql\_slave\_skip\_counter=1;start slave 是可以跳过整个事务的。
+> @王朋飞 同学问了一个好问题，`sql_slave_skip_counter` 跳过的是一个 event，由于 MySQL 总不能执行一半的事务，所以既然跳过了一个 event，就会跳到这个事务的末尾，因此 set global `sql_slave_skip_counter`=1;start slave 是可以跳过整个事务的。
 
 ![上期问题时间（配图 11）](https://static001.geekbang.org/resource/image/09/77/09c1073f99cf71d2fb162a716b5fa577.jpg)

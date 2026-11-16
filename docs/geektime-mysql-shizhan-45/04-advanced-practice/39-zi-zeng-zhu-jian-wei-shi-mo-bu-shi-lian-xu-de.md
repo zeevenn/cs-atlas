@@ -55,13 +55,13 @@ CREATE TABLE `t` (
 1. 如果 X\<Y，那么这个表的自增值不变；
 2. 如果 X≥Y，就需要把当前自增值修改为新的自增值。
 
-**新的自增值生成算法是** ：从 auto\_increment\_offset 开始，以 auto\_increment\_increment 为步长，持续叠加，直到找到第一个大于 X 的值，作为新的自增值。
+**新的自增值生成算法是**：从 `auto_increment_offset` 开始，以 `auto_increment_increment` 为步长，持续叠加，直到找到第一个大于 X 的值，作为新的自增值。
 
-其中，auto\_increment\_offset 和 auto\_increment\_increment 是两个系统参数，分别用来表示自增的初始值和步长，默认值都是 1。
+其中，`auto_increment_offset` 和 `auto_increment_increment` 是两个系统参数，分别用来表示自增的初始值和步长，默认值都是 1。
 
-> 备注：在一些场景下，使用的就不全是默认值。比如，双 M 的主备结构里要求双写的时候，我们就可能会设置成 auto\_increment\_increment=2，让一个库的自增 id 都是奇数，另一个库的自增 id 都是偶数，避免两个库生成的主键发生冲突。
+> 备注：在一些场景下，使用的就不全是默认值。比如，双 M 的主备结构里要求双写的时候，我们就可能会设置成 `auto_increment_increment`=2，让一个库的自增 id 都是奇数，另一个库的自增 id 都是偶数，避免两个库生成的主键发生冲突。
 
-当 auto\_increment\_offset 和 auto\_increment\_increment 都是 1 的时候，新的自增值生成逻辑很简单，就是：
+当 `auto_increment_offset` 和 `auto_increment_increment` 都是 1 的时候，新的自增值生成逻辑很简单，就是：
 
 1. 如果准备插入的值>=当前自增值，新的自增值就是准备插入的值+1；
 2. 否则，自增值不变。
@@ -141,7 +141,7 @@ insert into t values(null,2,2);
 
 在 MySQL 5.0 版本的时候，自增锁的范围是语句级别。也就是说，如果一个语句申请了一个表自增锁，这个锁会等语句执行结束以后才释放。显然，这样设计会影响并发度。
 
-MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb\_autoinc\_lock\_mode，默认值是 1。
+MySQL 5.1.22 版本引入了一个新策略，新增参数 `innodb_autoinc_lock_mode`，默认值是 1。
 
 1. 这个参数的值被设置为 0 时，表示采用之前 MySQL 5.0 版本的策略，即语句执行结束后才释放锁；
 2. 这个参数的值被设置为 1 时：
@@ -167,7 +167,7 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb\_autoinc\_lock
 
 你可能会说，这也没关系吧，毕竟 session B 的语义本身就没有要求表 t2 的所有行的数据都跟 session A 相同。
 
-是的，从数据逻辑上看是对的。但是，如果我们现在的 binlog\_format=statement，你可以设想下，binlog 会怎么记录呢？
+是的，从数据逻辑上看是对的。但是，如果我们现在的 `binlog_format`=statement，你可以设想下，binlog 会怎么记录呢？
 
 由于两个 session 是同时执行插入数据命令的，所以 binlog 里面对表 t2 的更新日志只有两种情况：要么先记 session A 的，要么先记 session B 的。
 
@@ -180,13 +180,13 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb\_autoinc\_lock
 而要解决这个问题，有两种思路：
 
 1. 一种思路是，让原库的批量插入数据语句，固定生成连续的 id 值。所以，自增锁直到语句执行结束才释放，就是为了达到这个目的。
-2. 另一种思路是，在 binlog 里面把插入数据的操作都如实记录进来，到备库执行的时候，不再依赖于自增主键去生成。这种情况，其实就是 innodb\_autoinc\_lock\_mode 设置为 2，同时 binlog\_format 设置为 row。
+2. 另一种思路是，在 binlog 里面把插入数据的操作都如实记录进来，到备库执行的时候，不再依赖于自增主键去生成。这种情况，其实就是 `innodb_autoinc_lock_mode` 设置为 2，同时 `binlog_format` 设置为 row。
 
-因此， **在生产上，尤其是有 insert … select 这种批量插入数据的场景时，从并发插入数据性能的角度考虑，我建议你这样设置：innodb\_autoinc\_lock\_mode=2 ，并且 binlog\_format=row** .这样做，既能提升并发性，又不会出现数据一致性问题。
+因此， **在生产上，尤其是有 insert … select 这种批量插入数据的场景时，从并发插入数据性能的角度考虑，我建议你这样设置：`innodb_autoinc_lock_mode`=2 ，并且 `binlog_format`=row** .这样做，既能提升并发性，又不会出现数据一致性问题。
 
 需要注意的是，我这里说的 **批量插入数据，包含的语句类型是 insert … select、replace … select 和 load data 语句。**
 
-但是，在普通的 insert 语句里面包含多个 value 值的情况下，即使 innodb\_autoinc\_lock\_mode 设置为 1，也不会等语句执行完成才释放锁。因为这类语句在申请自增 id 的时候，是可以精确计算出需要多少个 id 的，然后一次性申请，申请完成后锁就可以释放了。
+但是，在普通的 insert 语句里面包含多个 value 值的情况下，即使 `innodb_autoinc_lock_mode` 设置为 1，也不会等语句执行完成才释放锁。因为这类语句在申请自增 id 的时候，是可以精确计算出需要多少个 id 的，然后一次性申请，申请完成后锁就可以释放了。
 
 也就是说，批量插入数据的语句，之所以需要这么设置，是因为不知道要预先申请多少个 id。
 
@@ -225,11 +225,11 @@ insert…select，实际上往表 t2 中插入了 4 行数据。但是，这四�
 
 然后，我和你分享了在一个语句执行过程中，自增值改变的时机，分析了为什么 MySQL 在事务回滚的时候不能回收自增 id。
 
-MySQL 5.1.22 版本开始引入的参数 innodb\_autoinc\_lock\_mode，控制了自增值申请时的锁范围。从并发性能的角度考虑，我建议你将其设置为 2，同时将 binlog\_format 设置为 row。我在前面的文章中其实多次提到，binlog\_format 设置为 row，是很有必要的。今天的例子给这个结论多了一个理由。
+MySQL 5.1.22 版本开始引入的参数 `innodb_autoinc_lock_mode`，控制了自增值申请时的锁范围。从并发性能的角度考虑，我建议你将其设置为 2，同时将 `binlog_format` 设置为 row。我在前面的文章中其实多次提到，`binlog_format` 设置为 row，是很有必要的。今天的例子给这个结论多了一个理由。
 
 最后，我给你留一个思考题吧。
 
-在最后一个例子中，执行 insert into t2(c,d) select c,d from t;这个语句的时候，如果隔离级别是可重复读（repeatable read），binlog\_format=statement。这个语句会对表 t 的所有记录和间隙加锁。
+在最后一个例子中，执行 insert into t2(c,d) select c,d from t;这个语句的时候，如果隔离级别是可重复读（repeatable read），`binlog_format`=statement。这个语句会对表 t 的所有记录和间隙加锁。
 
 你觉得为什么需要这么做呢？
 

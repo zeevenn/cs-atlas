@@ -30,7 +30,7 @@ innodb_buffer_pool_size = 268435456
 咦？控制块和缓存页之间的那个碎片是个什么玩意儿？你想想啊，每一个控制块都对应一个缓存页，那在分配足够多的控制块和缓存页后，可能剩余的那点儿空间不够一对控制块和缓存页的大小，自然就用不到喽，这个用不到的那点儿内存空间就被称为碎片了。当然，如果你把 `Buffer Pool` 的大小设置的刚刚好的话，也可能不会产生碎片～
 
 > [!TIP]
-> 小贴士：每个控制块大约占用缓存页大小的 5%，在 MySQL5.7.21 这个版本中，每个控制块占用的大小是 808 字节。而我们设置的 innodb_buffer_pool_size 并不包含这部分控制块占用的内存空间大小，也就是说 InnoDB 在为 Buffer Pool 向操作系统申请连续的内存空间时，这片连续的内存空间一般会比 innodb_buffer_pool_size 的值大 5%左右。
+> 小贴士：每个控制块大约占用缓存页大小的 5%，在 MySQL5.7.21 这个版本中，每个控制块占用的大小是 808 字节。而我们设置的 `innodb_buffer_pool_size` 并不包含这部分控制块占用的内存空间大小，也就是说 InnoDB 在为 Buffer Pool 向操作系统申请连续的内存空间时，这片连续的内存空间一般会比 `innodb_buffer_pool_size` 的值大 5%左右。
 
 ### free 链表的管理
 
@@ -226,9 +226,9 @@ innodb_buffer_pool_size/innodb_buffer_pool_instances
 
 也就是总共的大小除以实例的个数，结果就是每个 `Buffer Pool` 实例占用的大小。
 
-不过也不是说 `Buffer Pool` 实例创建的越多越好，分别管理各个 `Buffer Pool` 也是需要性能开销的，设计 `InnoDB` 的大佬们规定：<span style="color:red">当 innodb_buffer_pool_size 的值小于 1G 的时候设置多个实例是无效的，InnoDB 会默认把 innodb_buffer_pool_instances 的值修改为 1</span>。而我们鼓励在 `Buffer Pool` 大小或等于 1G 的时候设置多个 `Buffer Pool` 实例。
+不过也不是说 `Buffer Pool` 实例创建的越多越好，分别管理各个 `Buffer Pool` 也是需要性能开销的，设计 `InnoDB` 的大佬们规定：<span style="color:red">当 `innodb_buffer_pool_size` 的值小于 1G 的时候设置多个实例是无效的，InnoDB 会默认把 `innodb_buffer_pool_instances` 的值修改为 1</span>。而我们鼓励在 `Buffer Pool` 大小或等于 1G 的时候设置多个 `Buffer Pool` 实例。
 
-### innodb_buffer_pool_chunk_size
+### `innodb_buffer_pool_chunk_size`
 
 在 `MySQL 5.7.5` 之前，`Buffer Pool` 的大小只能在服务器启动时通过配置 `innodb_buffer_pool_size` 启动参数来调整大小，在服务器运行过程中是不允许调整该值的。不过设计 `MySQL` 的大佬在 `5.7.5` 以及之后的版本中支持了在服务器运行过程中调整 `Buffer Pool` 大小的功能，但是有一个问题，就是每次当我们要重新调整 `Buffer Pool` 大小时，都需要重新向操作系统申请一块连续的内存空间，然后将旧的 `Buffer Pool` 中的内容复制到这一块新空间，这是极其耗时的。所以设计 `MySQL` 的大佬们决定不再一次性为某个 `Buffer Pool` 实例向操作系统申请一大片连续的内存空间，而是以一个所谓的 `chunk` 为单位向操作系统申请空间。也就是说一个 `Buffer Pool` 实例其实是由若干个 `chunk` 组成的，一个 `chunk` 就代表一片连续的内存空间，里边儿包含了若干缓存页与其对应的控制块，画个图表示就是这样：
 
@@ -236,10 +236,10 @@ innodb_buffer_pool_size/innodb_buffer_pool_instances
 
 上图代表的 `Buffer Pool` 就是由 2 个实例组成的，每个实例中又包含 2 个 `chunk`。
 
-正是因为发明了这个 `chunk` 的概念，我们在服务器运行期间调整 `Buffer Pool` 的大小时就是以 `chunk` 为单位增加或者删除内存空间，而不需要重新向操作系统申请一片大的内存，然后进行缓存页的复制。这个所谓的 `chunk` 的大小是我们在启动操作 `MySQL` 服务器时通过 `innodb_buffer_pool_chunk_size` 启动参数指定的，它的默认值是 `134217728`，也就是 `128M`。不过需要注意的是，<span style="color:red">innodb_buffer_pool_chunk_size 的值只能在服务器启动时指定，在服务器运行过程中是不可以修改的</span>。
+正是因为发明了这个 `chunk` 的概念，我们在服务器运行期间调整 `Buffer Pool` 的大小时就是以 `chunk` 为单位增加或者删除内存空间，而不需要重新向操作系统申请一片大的内存，然后进行缓存页的复制。这个所谓的 `chunk` 的大小是我们在启动操作 `MySQL` 服务器时通过 `innodb_buffer_pool_chunk_size` 启动参数指定的，它的默认值是 `134217728`，也就是 `128M`。不过需要注意的是，<span style="color:red">`innodb_buffer_pool_chunk_size` 的值只能在服务器启动时指定，在服务器运行过程中是不可以修改的</span>。
 
 > [!TIP]
-> 小贴士：为什么不允许在服务器运行过程中修改 innodb_buffer_pool_chunk_size 的值？还不是因为 innodb_buffer_pool_chunk_size 的值代表 InnoDB 向操作系统申请的一片连续的内存空间的大小，如果你在服务器运行过程中修改了该值，就意味着要重新向操作系统申请连续的内存空间并且将原先的缓存页和它们对应的控制块复制到这个新的内存空间中，这是十分耗时的操作！另外，这个 innodb_buffer_pool_chunk_size 的值并不包含缓存页对应的控制块的内存空间大小，所以实际上 InnoDB 向操作系统申请连续内存空间时，每个 chunk 的大小要比 innodb_buffer_pool_chunk_size 的值大一些，约 5%。
+> 小贴士：为什么不允许在服务器运行过程中修改 `innodb_buffer_pool_chunk_size` 的值？还不是因为 `innodb_buffer_pool_chunk_size` 的值代表 InnoDB 向操作系统申请的一片连续的内存空间的大小，如果你在服务器运行过程中修改了该值，就意味着要重新向操作系统申请连续的内存空间并且将原先的缓存页和它们对应的控制块复制到这个新的内存空间中，这是十分耗时的操作！另外，这个 `innodb_buffer_pool_chunk_size` 的值并不包含缓存页对应的控制块的内存空间大小，所以实际上 InnoDB 向操作系统申请连续内存空间时，每个 chunk 的大小要比 `innodb_buffer_pool_chunk_size` 的值大一些，约 5%。
 
 ### 配置 Buffer Pool 时的注意事项
 

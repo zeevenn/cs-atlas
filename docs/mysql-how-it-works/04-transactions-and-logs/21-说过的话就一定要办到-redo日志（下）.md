@@ -258,7 +258,7 @@ Last checkpoint at  124052494
 - `Pages flushed up to`：代表 `flush链表` 中被最早修改的那个页面对应的 `oldest_modification` 属性值。
 - `Last checkpoint at`：当前系统的 `checkpoint_lsn` 值。
 
-## innodb_flush_log_at_trx_commit 的用法
+## `innodb_flush_log_at_trx_commit` 的用法
 
 我们前面说为了保证事务的持久性，用户线程在事务提交时需要将该事务执行过程中产生的所有 `redo` 日志都刷新到磁盘上。这一条要求太狠了，会很明显的降低数据库性能。如果有的同学对事务的持久性要求不是那么强烈的话，可以选择修改一个称为 `innodb_flush_log_at_trx_commit` 的系统变量的值，该变量有 3 个可选的值：
 

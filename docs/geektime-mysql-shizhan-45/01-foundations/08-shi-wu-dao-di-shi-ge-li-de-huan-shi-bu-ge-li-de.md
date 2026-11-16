@@ -25,7 +25,7 @@ insert into t(id, k) values(1,1),(2,2);
 
 begin/start transaction 命令并不是一个事务的起点，在执行到它们之后的第一个操作 InnoDB 表的语句，事务才真正启动。如果你想要马上启动一个事务，可以使用 start transaction with consistent snapshot 这个命令。
 
-还需要注意的是，在整个专栏里面，我们的例子中如果没有特别说明，都是默认 autocommit=1。
+还需要注意的是，在整个专栏里面，我们的例子中如果没有特别说明，都是默认 `autocommit`=1。
 
 在这个例子中，事务 C 没有显式地使用 begin/commit，表示这个 update 语句本身就是一个事务，语句完成的时候会自动提交。事务 B 在更新了行之后查询; 事务 A 在一个只读事务中查询，并且时间顺序上是在事务 B 的查询之后。
 

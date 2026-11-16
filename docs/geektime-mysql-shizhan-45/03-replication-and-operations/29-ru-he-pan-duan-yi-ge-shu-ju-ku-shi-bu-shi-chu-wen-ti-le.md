@@ -30,25 +30,25 @@ CREATE TABLE `t` (
 
 ![图 1 查询 blocked](https://static001.geekbang.org/resource/image/35/55/35076dd3d0a0d44d22b76d2a29885255.png)
 
-我们设置 innodb\_thread\_concurrency 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
+我们设置 `innodb_thread_concurrency` 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
 
-这里，我把 innodb\_thread\_concurrency 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于执行状态，以此来模拟大查询。
+这里，我把 `innodb_thread_concurrency` 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于执行状态，以此来模拟大查询。
 
 你看到了， session D 里面，select 1 是能执行成功的，但是查询表 t 的语句会被堵住。也就是说，如果这时候我们用 select 1 来检测实例是否正常的话，是检测不出问题的。
 
-在 InnoDB 中，innodb\_thread\_concurrency 这个参数的默认值是 0，表示不限制并发线程数量。但是，不限制并发线程数肯定是不行的。因为，一个机器的 CPU 核数有限，线程全冲进来，上下文切换的成本就会太高。
+在 InnoDB 中，`innodb_thread_concurrency` 这个参数的默认值是 0，表示不限制并发线程数量。但是，不限制并发线程数肯定是不行的。因为，一个机器的 CPU 核数有限，线程全冲进来，上下文切换的成本就会太高。
 
-所以，通常情况下，我们建议把 innodb\_thread\_concurrency 设置为 64\~128 之间的值。这时，你一定会有疑问，并发线程上限数设置为 128 够干啥，线上的并发连接数动不动就上千了。
+所以，通常情况下，我们建议把 `innodb_thread_concurrency` 设置为 64\~128 之间的值。这时，你一定会有疑问，并发线程上限数设置为 128 够干啥，线上的并发连接数动不动就上千了。
 
 产生这个疑问的原因，是搞混了 **并发连接和并发查询。**
 
 并发连接和并发查询，并不是同一个概念。你在 show processlist 的结果里，看到的几千个连接，指的就是并发连接。而当前正在执行的语句，才是我们所说的并发查询。
 
-并发连接数达到几千个影响并不大，就是多占一些内存而已。我们应该关注的是并发查询，因为并发查询太高才是 CPU 杀手。这也是为什么我们需要设置 innodb\_thread\_concurrency 参数的原因。
+并发连接数达到几千个影响并不大，就是多占一些内存而已。我们应该关注的是并发查询，因为并发查询太高才是 CPU 杀手。这也是为什么我们需要设置 `innodb_thread_concurrency` 参数的原因。
 
-然后，你可能还会想起我们在[第 7 篇文章](https://time.geekbang.org/column/article/70215)中讲到的热点更新和死锁检测的时候，如果把 innodb\_thread\_concurrency 设置为 128 的话，那么出现同一行热点更新的问题时，是不是很快就把 128 消耗完了，这样整个系统是不是就挂了呢？
+然后，你可能还会想起我们在[第 7 篇文章](https://time.geekbang.org/column/article/70215)中讲到的热点更新和死锁检测的时候，如果把 `innodb_thread_concurrency` 设置为 128 的话，那么出现同一行热点更新的问题时，是不是很快就把 128 消耗完了，这样整个系统是不是就挂了呢？
 
-实际上， **在线程进入锁等待以后，并发线程的计数会减一** ，也就是说等行锁（也包括间隙锁）的线程是不算在 128 里面的。
+实际上， **在线程进入锁等待以后，并发线程的计数会减一**，也就是说等行锁（也包括间隙锁）的线程是不算在 128 里面的。
 
 MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已经不吃 CPU 了；更重要的是，必须这么设计，才能避免整个系统锁死。
 
@@ -66,7 +66,7 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 
 虽然说等锁的线程不算在并发线程计数里，但如果它在真正地执行查询，就比如我们上面例子中前三个事务中的 select sleep(100) from t，还是要算进并发线程的计数的。
 
-在这个例子中，同时在执行的语句超过了设置的 innodb\_thread\_concurrency 的值，这时候系统其实已经不行了，但是通过 select 1 来检测系统，会认为系统还是正常的。
+在这个例子中，同时在执行的语句超过了设置的 `innodb_thread_concurrency` 的值，这时候系统其实已经不行了，但是通过 select 1 来检测系统，会认为系统还是正常的。
 
 因此，我们使用 select 1 的判断逻辑要修改一下。
 
@@ -100,7 +100,7 @@ update mysql.health_check set t_modified=now();
 
 但是，如果主库 A 和备库 B 都用相同的更新命令，就可能出现行冲突，也就是可能会导致主备同步停止。所以，现在看来 mysql.health\_check 这个表就不能只有一行数据了。
 
-为了让主备之间的更新不产生冲突，我们可以在 mysql.health\_check 表上存入多行数据，并用 A、B 的 server\_id 做主键。
+为了让主备之间的更新不产生冲突，我们可以在 mysql.health\_check 表上存入多行数据，并用 A、B 的 `server_id` 做主键。
 
 ```sql
 CREATE TABLE `health_check` (
@@ -113,7 +113,7 @@ CREATE TABLE `health_check` (
 insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on duplicate key update t_modified=now();
 ```
 
-由于 MySQL 规定了主库和备库的 server\_id 必须不同（否则创建主备关系的时候就会报错），这样就可以保证主、备库各自的检测命令不会发生冲突。
+由于 MySQL 规定了主库和备库的 `server_id` 必须不同（否则创建主备关系的时候就会报错），这样就可以保证主、备库各自的检测命令不会发生冲突。
 
 更新判断是一个相对比较常用的方案了，不过依然存在一些问题。其中，判定慢一直是让 DBA 头疼的问题。
 
@@ -141,7 +141,7 @@ insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on du
 
 针对磁盘利用率这个问题，如果 MySQL 可以告诉我们，内部每一次 IO 请求的时间，那我们判断数据库是否出问题的方法就可靠得多了。
 
-其实，MySQL 5.6 版本以后提供的 performance\_schema 库，就在 file\_summary\_by\_event\_name 表里统计了每次 IO 请求的时间。
+其实，MySQL 5.6 版本以后提供的 `performance_schema` 库，就在 file\_summary\_by\_event\_name 表里统计了每次 IO 请求的时间。
 
 file\_summary\_by\_event\_name 表里有很多行数据，我们先来看看 event\_name='wait/io/file/innodb/innodb\_log\_file’ 这一行。
 
@@ -159,11 +159,11 @@ file\_summary\_by\_event\_name 表里有很多行数据，我们先来看看 eve
 
 最后的第四组数据，是对其他类型数据的统计。在 redo log 里，你可以认为它们就是对 fsync 的统计。
 
-在 performance\_schema 库的 file\_summary\_by\_event\_name 表里，binlog 对应的是event\_name = "wait/io/file/sql/binlog"这一行。各个字段的统计逻辑，与 redo log 的各个字段完全相同。这里，我就不再赘述了。
+在 `performance_schema` 库的 file\_summary\_by\_event\_name 表里，binlog 对应的是event\_name = "wait/io/file/sql/binlog"这一行。各个字段的统计逻辑，与 redo log 的各个字段完全相同。这里，我就不再赘述了。
 
-因为我们每一次操作数据库，performance\_schema 都需要额外地统计这些信息，所以我们打开这个统计功能是有性能损耗的。
+因为我们每一次操作数据库，`performance_schema` 都需要额外地统计这些信息，所以我们打开这个统计功能是有性能损耗的。
 
-我的测试结果是，如果打开所有的 performance\_schema 项，性能大概会下降 10%左右。所以，我建议你只打开自己需要的项进行统计。你可以通过下面的方法打开或者关闭某个具体项的统计。
+我的测试结果是，如果打开所有的 `performance_schema` 项，性能大概会下降 10%左右。所以，我建议你只打开自己需要的项进行统计。你可以通过下面的方法打开或者关闭某个具体项的统计。
 
 如果要打开 redo log 的时间监控，你可以执行这个语句：
 
@@ -197,7 +197,7 @@ MHA 中的另一个可选方法是只做连接，就是 「如果连接成功就
 
 其实，每个改进的方案，都会增加额外损耗，并不能用「对错」做直接判断，需要你根据业务实际情况去做权衡。
 
-我个人比较倾向的方案，是优先考虑 update 系统表，然后再配合增加检测 performance\_schema 的信息。
+我个人比较倾向的方案，是优先考虑 update 系统表，然后再配合增加检测 `performance_schema` 的信息。
 
 最后，又到了我们的思考题时间。
 

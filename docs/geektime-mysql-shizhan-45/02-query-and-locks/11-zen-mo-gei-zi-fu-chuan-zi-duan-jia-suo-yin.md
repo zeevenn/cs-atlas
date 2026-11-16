@@ -212,6 +212,6 @@ delete 语句删掉了所有的数据，然后再通过 call idata()插入了 10
 
 > @斜面镜子 Bill 的评论最接近答案；\
 > @某、人 做了两个很不错的对照试验；\
-> @ye7zi 等几位同学很认真的验证，赞态度。大家的机器如果 IO 能力比较差的话，做这个验证的时候，可以把 innodb\_flush\_log\_at\_trx\_commit 和 sync\_binlog 都设置成 0。
+> @ye7zi 等几位同学很认真的验证，赞态度。大家的机器如果 IO 能力比较差的话，做这个验证的时候，可以把 `innodb_flush_log_at_trx_commit` 和 `sync_binlog` 都设置成 0。
 
 ![上期问题时间（配图 5）](https://static001.geekbang.org/resource/image/ce/d9/ce7f4e35916ed1aa49206a53a0547bd9.jpg)

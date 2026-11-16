@@ -206,7 +206,7 @@ mysql> SELECT @@transaction_isolation;
 ```
 
 > [!TIP]
-> 小贴士：我们也可以使用设置系统变量 transaction_isolation 的方式来设置事务的隔离级别，不过我们前面介绍过，一般系统变量只有 GLOBAL 和 SESSION 两个作用范围，而这个 transaction_isolation 却有 3 个（与上面 SET TRANSACTION ISOLATION LEVEL 的语法相对应），设置语法上有些特殊，更多详情可以参见文档：<https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_transaction_isolation>。另外，transaction_isolation 是在 MySQL 5.7.20 的版本中引入来替换 tx_isolation 的，如果你使用的是之前版本的 MySQL，请将上述用到系统变量 transaction_isolation 的地方替换为 tx_isolation。
+> 小贴士：我们也可以使用设置系统变量 `transaction_isolation` 的方式来设置事务的隔离级别，不过我们前面介绍过，一般系统变量只有 GLOBAL 和 SESSION 两个作用范围，而这个 `transaction_isolation` 却有 3 个（与上面 SET TRANSACTION ISOLATION LEVEL 的语法相对应），设置语法上有些特殊，更多详情可以参见文档：<https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_transaction_isolation>。另外，`transaction_isolation` 是在 MySQL 5.7.20 的版本中引入来替换 `tx_isolation` 的，如果你使用的是之前版本的 MySQL，请将上述用到系统变量 `transaction_isolation` 的地方替换为 `tx_isolation`。
 
 ## MVCC 原理
 

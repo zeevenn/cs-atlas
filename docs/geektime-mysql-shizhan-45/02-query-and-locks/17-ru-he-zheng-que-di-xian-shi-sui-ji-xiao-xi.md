@@ -60,9 +60,9 @@ Extra 字段显示 Using temporary，表示的是需要使用临时表；Using f
 
 ![图 3 rowid 排序](https://static001.geekbang.org/resource/image/dc/6d/dc92b67721171206a302eb679c83e86d.jpg)
 
-然后，我再问你一个问题，你觉得对于临时内存表的排序来说，它会选择哪一种算法呢？回顾一下上一篇文章的一个结论： **对于 InnoDB 表来说** ，执行全字段排序会减少磁盘访问，因此会被优先选择。
+然后，我再问你一个问题，你觉得对于临时内存表的排序来说，它会选择哪一种算法呢？回顾一下上一篇文章的一个结论： **对于 InnoDB 表来说**，执行全字段排序会减少磁盘访问，因此会被优先选择。
 
-我强调了InnoDB 表，你肯定想到了， **对于内存表，回表过程只是简单地根据数据行的位置，直接访问内存得到数据，根本不会导致多访问磁盘** 。优化器没有了这一层顾虑，那么它会优先考虑的，就是用于排序的行越少越好了，所以，MySQL 这时就会选择 rowid 排序。
+我强调了InnoDB 表，你肯定想到了， **对于内存表，回表过程只是简单地根据数据行的位置，直接访问内存得到数据，根本不会导致多访问磁盘**。优化器没有了这一层顾虑，那么它会优先考虑的，就是用于排序的行越少越好了，所以，MySQL 这时就会选择 rowid 排序。
 
 理解了这个算法选择的逻辑，我们再来看看语句的执行流程。同时，通过今天的这个例子，我们来尝试分析一下语句的扫描行数。
 
@@ -112,13 +112,13 @@ select word from words order by rand() limit 3;
 
 那么，是不是所有的临时表都是内存表呢？
 
-其实不是的。tmp\_table\_size 这个配置限制了内存临时表的大小，默认值是 16M。如果临时表大小超过了 tmp\_table\_size，那么内存临时表就会转成磁盘临时表。
+其实不是的。`tmp_table_size` 这个配置限制了内存临时表的大小，默认值是 16M。如果临时表大小超过了 `tmp_table_size`，那么内存临时表就会转成磁盘临时表。
 
-磁盘临时表使用的引擎默认是 InnoDB，是由参数 internal\_tmp\_disk\_storage\_engine 控制的。
+磁盘临时表使用的引擎默认是 InnoDB，是由参数 `internal_tmp_disk_storage_engine` 控制的。
 
 当使用磁盘临时表的时候，对应的就是一个没有显式索引的 InnoDB 表的排序过程。
 
-为了复现这个过程，我把 tmp\_table\_size 设置成 1024，把 sort\_buffer\_size 设置成 32768, 把 max\_length\_for\_sort\_data 设置成 16。
+为了复现这个过程，我把 `tmp_table_size` 设置成 1024，把 `sort_buffer_size` 设置成 32768, 把 `max_length_for_sort_data` 设置成 16。
 
 ```sql
 set tmp_table_size=1024;
@@ -138,9 +138,9 @@ SELECT * FROM `information_schema`.`OPTIMIZER_TRACE`\G
 
 然后，我们来看一下这次 OPTIMIZER\_TRACE 的结果。
 
-因为将 max\_length\_for\_sort\_data 设置成 16，小于 word 字段的长度定义，所以我们看到 sort\_mode 里面显示的是 rowid 排序，这个是符合预期的，参与排序的是随机值 R 字段和 rowid 字段组成的行。
+因为将 `max_length_for_sort_data` 设置成 16，小于 word 字段的长度定义，所以我们看到 sort\_mode 里面显示的是 rowid 排序，这个是符合预期的，参与排序的是随机值 R 字段和 rowid 字段组成的行。
 
-这时候你可能心算了一下，发现不对。R 字段存放的随机值就 8 个字节，rowid 是 6 个字节（至于为什么是 6 字节，就留给你课后思考吧），数据总行数是 10000，这样算出来就有 140000 字节，超过了 sort\_buffer\_size 定义的 32768 字节了。但是，number\_of\_tmp\_files 的值居然是 0，难道不需要用临时文件吗？
+这时候你可能心算了一下，发现不对。R 字段存放的随机值就 8 个字节，rowid 是 6 个字节（至于为什么是 6 字节，就留给你课后思考吧），数据总行数是 10000，这样算出来就有 140000 字节，超过了 `sort_buffer_size` 定义的 32768 字节了。但是，number\_of\_tmp\_files 的值居然是 0，难道不需要用临时文件吗？
 
 这个 SQL 语句的排序确实没有用到临时文件，采用是 MySQL 5.6 版本引入的一个新的排序算法，即：优先队列排序算法。接下来，我们就看看为什么没有使用临时文件的算法，也就是归并排序算法，而是采用了优先队列排序算法。
 
@@ -173,7 +173,7 @@ SELECT * FROM `information_schema`.`OPTIMIZER_TRACE`\G
 select city,name,age from t where city='杭州' order by name limit 1000  ;
 ```
 
-你可能会问，这里也用到了 limit，为什么没用优先队列排序算法呢？原因是，这条 SQL 语句是 limit 1000，如果使用优先队列算法的话，需要维护的堆的大小就是 1000 行的(name,rowid)，超过了我设置的 sort\_buffer\_size 大小，所以只能使用归并排序算法。
+你可能会问，这里也用到了 limit，为什么没用优先队列排序算法呢？原因是，这条 SQL 语句是 limit 1000，如果使用优先队列算法的话，需要维护的堆的大小就是 1000 行的(name,rowid)，超过了我设置的 `sort_buffer_size` 大小，所以只能使用归并排序算法。
 
 总之，不论是使用哪种类型的临时表，order by rand()这种写法都会让计算过程非常复杂，需要大量的扫描行数，因此排序过程的资源消耗也会很大。
 

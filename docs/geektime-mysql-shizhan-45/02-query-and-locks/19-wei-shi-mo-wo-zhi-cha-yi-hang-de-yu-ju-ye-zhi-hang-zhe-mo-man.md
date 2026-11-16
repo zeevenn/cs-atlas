@@ -69,7 +69,7 @@ session A 通过 lock table 命令持有表 t 的 MDL 写锁，而 session B 的
 
 这类问题的处理方式，就是找到谁持有 MDL 写锁，然后把它 kill 掉。
 
-但是，由于在 show processlist 的结果里面，session A 的 Command 列是 `Sleep`，导致查找起来很不方便。不过有了 performance\_schema 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 performance\_schema=on，相比于设置为 off 会有 10%左右的性能损失)
+但是，由于在 show processlist 的结果里面，session A 的 Command 列是 `Sleep`，导致查找起来很不方便。不过有了 `performance_schema` 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 `performance_schema`=on，相比于设置为 off 会有 10%左右的性能损失)
 
 通过查询 sys.schema\_table\_lock\_waits 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
 
@@ -164,11 +164,11 @@ select * from t where c=50000 limit 1;
 
 由于字段 c 上没有索引，这个语句只能走 id 主键顺序扫描，因此需要扫描 5 万行。
 
-作为确认，你可以看一下慢查询日志。注意，这里为了把所有语句记录到 slow log 里，我在连接后先执行了 set long\_query\_time=0，将慢查询日志的时间阈值设置为 0。
+作为确认，你可以看一下慢查询日志。注意，这里为了把所有语句记录到 slow log 里，我在连接后先执行了 set `long_query_time`=0，将慢查询日志的时间阈值设置为 0。
 
 ![图 11 全表扫描 5 万行的 slow log](https://static001.geekbang.org/resource/image/d8/3c/d8b2b5f97c60ae4fc4a03c616847503c.png)
 
-Rows\_examined 显示扫描了 50000 行。你可能会说，不是很慢呀，11.5 毫秒就返回了，我们线上一般都配置超过 1 秒才算慢查询。但你要记住： **坏查询不一定是慢查询** 。我们这个例子里面只有 10 万行记录，数据量大起来的话，执行时间就线性涨上去了。
+Rows\_examined 显示扫描了 50000 行。你可能会说，不是很慢呀，11.5 毫秒就返回了，我们线上一般都配置超过 1 秒才算慢查询。但你要记住： **坏查询不一定是慢查询**。我们这个例子里面只有 10 万行记录，数据量大起来的话，执行时间就线性涨上去了。
 
 扫描行数多，所以执行慢，这个很好理解。
 

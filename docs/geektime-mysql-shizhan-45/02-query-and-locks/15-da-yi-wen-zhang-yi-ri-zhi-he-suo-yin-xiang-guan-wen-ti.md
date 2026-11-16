@@ -58,7 +58,7 @@ title: "15 答疑文章（一）：日志和索引相关问题"
 * statement 格式的 binlog，最后会有 COMMIT；
 * row 格式的 binlog，最后会有一个 XID event。
 
-另外，在 MySQL 5.6.2 版本以后，还引入了 binlog-checksum 参数，用来验证 binlog 内容的正确性。对于 binlog 日志由于磁盘原因，可能会在日志中间出错的情况，MySQL 可以通过校验 checksum 的结果来发现。所以，MySQL 还是有办法验证事务 binlog 的完整性的。
+另外，在 MySQL 5.6.2 版本以后，还引入了 `binlog-checksum` 参数，用来验证 binlog 内容的正确性。对于 binlog 日志由于磁盘原因，可能会在日志中间出错的情况，MySQL 可以通过校验 checksum 的结果来发现。所以，MySQL 还是有办法验证事务 binlog 的完整性的。
 
 ## 追问 2：redo log 和 binlog 是怎么关联起来的?
 

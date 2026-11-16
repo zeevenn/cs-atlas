@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
+import { readTitle } from './read-title.mjs'
 
 export const groups = [
   { text: '开始阅读', directory: '01-basics' },
@@ -13,7 +14,7 @@ export const groups = [
     .sort()
     .map((file) => ({
       number: Number(file.slice(0, 2)),
-      title: readFileSync(new URL(`../../mysql-how-it-works/${directory}/${file}`, import.meta.url), 'utf8').split('\n')[0].replace(/^# /, ''),
+      title: readTitle(new URL(`../../mysql-how-it-works/${directory}/${file}`, import.meta.url)),
       link: `/mysql-how-it-works/${directory}/${file.replace(/\.md$/, '')}`
     }))
 }))

@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
+import { readTitle } from './read-title.mjs'
 
 export const geektimeGroups = [
   { text: '课程介绍与目录', link: '/geektime-mysql-shizhan-45/' },
@@ -15,7 +16,7 @@ export const geektimeGroups = [
       .filter((file) => file.endsWith('.md'))
       .sort()
       .map((file) => ({
-        text: readFileSync(new URL(`../../geektime-mysql-shizhan-45/${directory}/${file}`, import.meta.url), 'utf8').split('\n')[0].replace(/^# /, ''),
+        text: readTitle(new URL(`../../geektime-mysql-shizhan-45/${directory}/${file}`, import.meta.url)),
         link: `/geektime-mysql-shizhan-45/${directory}/${file.replace(/\.md$/, '')}`
       }))
   }))

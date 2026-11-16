@@ -131,13 +131,13 @@ title: "13 为什么表数据删掉一半，表文件大小不变？"
 
 我们重建表的这个语句 alter table t engine=InnoDB，其实隐含的意思是：
 
-```text
+```sql
 alter table t engine=innodb,ALGORITHM=inplace;
 ```
 
 跟 inplace 对应的就是拷贝表的方式了，用法是：
 
-```text
+```sql
 alter table t engine=innodb,ALGORITHM=copy;
 ```
 
@@ -149,7 +149,7 @@ alter table t engine=innodb,ALGORITHM=copy;
 
 比如，如果我要给 InnoDB 表的一个字段加全文索引，写法是：
 
-```text
+```sql
 alter table t add FULLTEXT(field_name);
 ```
 

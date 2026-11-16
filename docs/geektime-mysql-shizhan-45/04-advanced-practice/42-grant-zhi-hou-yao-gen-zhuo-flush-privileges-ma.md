@@ -12,7 +12,7 @@ title: "42 grant 之后要跟着 flush privileges 吗？"
 
 为了便于说明，我先创建一个用户：
 
-```text
+```sql
 create user 'ua'@'%' identified by 'pa';
 ```
 
@@ -35,7 +35,7 @@ create user 'ua'@'%' identified by 'pa';
 
 全局权限，作用于整个 MySQL 实例，这些权限信息保存在 mysql 库的 user 表里。如果我要给用户 ua 赋一个最高权限的话，语句是这么写的：
 
-```text
+```sql
 grant all privileges on *.* to 'ua'@'%' with grant option;
 ```
 
@@ -55,7 +55,7 @@ grant all privileges on *.* to 'ua'@'%' with grant option;
 
 如果要回收上面的 grant 语句赋予的权限，你可以使用下面这条命令：
 
-```text
+```sql
 revoke all privileges on *.* from 'ua'@'%';
 ```
 
@@ -68,7 +68,7 @@ revoke all privileges on *.* from 'ua'@'%';
 
 除了全局权限，MySQL 也支持库级别的权限定义。如果要让用户 ua 拥有库 db1 的所有权限，可以执行下面这条命令：
 
-```text
+```sql
 grant all privileges on db1.* to 'ua'@'%' with grant option;
 ```
 
@@ -109,7 +109,7 @@ grant 操作对于已经存在的连接的影响，在全局权限和基于 db �
 
 这两类权限的赋权命令如下：
 
-```text
+```sql
 create table db1.t1(id int, a int);
 
 grant all privileges on db1.t1 to 'ua'@'%' with grant option;
@@ -165,7 +165,7 @@ flush privileges 语句本身会用数据表的数据重建一份内存权限数
 
 另外，在使用 grant 语句赋权时，你可能还会看到这样的写法：
 
-```text
+```sql
 grant super on *.* to 'ua'@'%' identified by 'pa';
 ```
 

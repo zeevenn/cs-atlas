@@ -88,8 +88,8 @@ N 叉树由于在读写上的性能优点，以及适配磁盘的访问模式，
 
 这个表的建表语句是：
 
-```text
-mysql> create table T(
+```sql
+create table T(
 id int primary key,
 k int not null,
 name varchar(16),
@@ -164,14 +164,14 @@ B+ 树为了维护索引有序性，在插入新值的时候需要做必要的�
 
 最后，我给你留下一个问题吧。对于上面例子中的 InnoDB 表 T，如果你要重建索引 k，你的两个 SQL 语句可以这么写：
 
-```text
+```sql
 alter table T drop index k;
 alter table T add index(k);
 ```
 
 如果你要重建主键索引，也可以这么写：
 
-```text
+```sql
 alter table T drop primary key;
 alter table T add primary key(id);
 ```

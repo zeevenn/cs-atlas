@@ -10,8 +10,8 @@ title: "19 为什么我只查一行的语句，也执行这么慢？"
 
 为了便于描述，我还是构造一个表，基于这个表来说明今天的问题。这个表有两个字段 id 和 c，并且我在里面插入了 10 万行记录。
 
-```text
-mysql> CREATE TABLE `t` (
+```sql
+CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `c` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -38,8 +38,8 @@ call idata();
 
 如图 1 所示，在表 t 执行下面的 SQL 语句：
 
-```text
-mysql> select * from t where id=1;
+```sql
+select * from t where id=1;
 ```
 
 查询结果长时间不返回。
@@ -87,8 +87,8 @@ session A 通过 lock table 命令持有表 t 的 MDL 写锁，而 session B 的
 
 我在表 t 上，执行下面的 SQL 语句：
 
-```text
-mysql> select * from information_schema.processlist where id=1;
+```sql
+select * from information_schema.processlist where id=1;
 ```
 
 这里，我先卖个关子。
@@ -100,7 +100,7 @@ mysql> select * from information_schema.processlist where id=1;
 
 这个状态表示的是，现在有一个线程正要对表 t 做 flush 操作。MySQL 里面对表做 flush 操作的用法，一般有以下两个：
 
-```text
+```sql
 flush tables t with read lock;
 
 flush tables with read lock;
@@ -130,8 +130,8 @@ flush tables with read lock;
 
 现在，经过了表级锁的考验，我们的 select 语句终于来到引擎里了。
 
-```text
-mysql> select * from t where id=1 lock in share mode;
+```sql
+select * from t where id=1 lock in share mode;
 ```
 
 上面这条语句的用法你也很熟悉了，我们在第 8 篇[《事务到底是隔离的还是不隔离的？》](https://time.geekbang.org/column/article/70562)文章介绍当前读时提到过。
@@ -154,8 +154,8 @@ mysql> select * from t where id=1 lock in share mode;
 
 查询方法是：
 
-```text
-mysql> select * from t sys.innodb_lock_waits where locked_table=`'test'.'t'`\G
+```sql
+select * from t sys.innodb_lock_waits where locked_table=`'test'.'t'`\G
 ```
 
 ![图 10 通过 sys.innodb\_lock\_waits 查行锁](https://static001.geekbang.org/resource/image/d8/18/d8603aeb4eaad3326699c13c46379118.png)
@@ -174,8 +174,8 @@ mysql> select * from t sys.innodb_lock_waits where locked_table=`'test'.'t'`\G
 
 先来看一条你一定知道原因的 SQL 语句：
 
-```text
-mysql> select * from t where c=50000 limit 1;
+```sql
+select * from t where c=50000 limit 1;
 ```
 
 由于字段 c 上没有索引，这个语句只能走 id 主键顺序扫描，因此需要扫描 5 万行。
@@ -194,8 +194,8 @@ Rows\_examined 显示扫描了 50000 行。你可能会说，不是很慢呀，1
 
 如图 12 所示，是这个例子的 slow log。可以看到，执行的语句是
 
-```text
-mysql> select * from t where id=1；
+```sql
+select * from t where id=1；
 ```
 
 虽然扫描行数是 1，但执行时间却长达 800 毫秒。
@@ -252,7 +252,7 @@ session B 更新完 100 万次，生成了 100 万个回滚日志(undo log)。
 
 但如果是下面的 SQL 语句，
 
-```text
+```sql
 begin;
 select * from t where c=5 for update;
 commit;
@@ -268,8 +268,8 @@ commit;
 
 @封建的风 提到一个有趣的场景，值得一说。我把他的问题重写一下，表结构如下：
 
-```text
-mysql> CREATE TABLE `table_a` (
+```sql
+CREATE TABLE `table_a` (
   `id` int(11) NOT NULL,
   `b` varchar(10) DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -279,8 +279,8 @@ mysql> CREATE TABLE `table_a` (
 
 假设现在表里面，有 100 万行数据，其中有 10 万行数据的 b 的值是’1234567890’， 假设现在执行语句是这么写的:
 
-```text
-mysql> select * from table_a where b='1234567890abcd';
+```sql
+select * from table_a where b='1234567890abcd';
 ```
 
 这时候，MySQL 会怎么执行呢？

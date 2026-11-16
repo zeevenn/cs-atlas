@@ -13,7 +13,7 @@ title: "34 到底可不可以使用 join？"
 
 为了便于量化分析，我还是创建两个表 t1 和 t2 来和你说明。
 
-```text
+```sql
 CREATE TABLE `t2` (
   `id` int(11) NOT NULL,
   `a` int(11) DEFAULT NULL,
@@ -46,7 +46,7 @@ insert into t1 (select * from t2 where id<=100)
 
 我们来看一下这个语句：
 
-```text
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.a);
 ```
 
@@ -122,7 +122,7 @@ select * from t1 straight_join t2 on (t1.a=t2.a);
 
 现在，我们把 SQL 语句改成这样：
 
-```text
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
 ```
 
@@ -172,7 +172,7 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 join\_buffer 的大小是由参数 join\_buffer\_size 设定的，默认值是 256k。 **如果放不下表 t1 的所有数据话，策略很简单，就是分段放。** 我把 join\_buffer\_size 改成 1200，再执行：
 
-```text
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
 ```
 
@@ -238,7 +238,7 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 我们前面的例子是没有加条件的。如果我在语句的 where 条件加上 t2.id<=50 这个限定条件，再来看下这两条语句：
 
-```text
+```sql
 select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;
 select * from t2 straight_join t1 on (t1.b=t2.b) where t2.id<=50;
 ```
@@ -249,7 +249,7 @@ select * from t2 straight_join t1 on (t1.b=t2.b) where t2.id<=50;
 
 我们再来看另外一组例子：
 
-```text
+```sql
 select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;
 select t1.b,t2.* from  t2  straight_join t1 on (t1.b=t2.b) where t2.id<=100;
 ```

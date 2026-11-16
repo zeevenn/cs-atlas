@@ -12,7 +12,7 @@ title: "10 MySQL 为什么有时候会选错索引？"
 
 我们先建一个简单的表，表里有 a、b 两个字段，并分别建上索引：
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `a` int(11) DEFAULT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE `t` (
 
 我是用存储过程来插入数据的，这里我贴出来方便你复现：
 
-```text
+```sql
 delimiter ;;
 create procedure idata()
 begin
@@ -44,8 +44,8 @@ call idata();
 
 接下来，我们分析一条 SQL 语句：
 
-```text
-mysql> select * from t where a between 10000 and 20000;
+```sql
+select * from t where a between 10000 and 20000;
 ```
 
 你一定会说，这个语句还用分析吗，很简单呀，a 上有索引，肯定是要使用索引 a 的。
@@ -72,7 +72,7 @@ mysql> select * from t where a between 10000 and 20000;
 
 下面的三条 SQL 语句，就是这个实验过程。
 
-```text
+```sql
 set long_query_time=0;
 select * from t where a between 10000 and 20000; /*Q1*/
 select * from t force index(a) where a between 10000 and 20000;/*Q2*/
@@ -171,8 +171,8 @@ rows 这个字段表示的是预计扫描行数。
 
 依然是基于这个表 t，我们看看另外一个语句：
 
-```text
-mysql> select * from t where (a between 1 and 1000)  and (b between 50000 and 100000) order by b limit 1;
+```sql
+select * from t where (a between 1 and 1000)  and (b between 50000 and 100000) order by b limit 1;
 ```
 
 从条件上看，这个查询没有符合条件的记录，因此会返回空集合。
@@ -193,8 +193,8 @@ mysql> select * from t where (a between 1 and 1000)  and (b between 50000 and 10
 
 图 8 是执行 explain 的结果。
 
-```text
-mysql> explain select * from t where (a between 1 and 1000) and (b between 50000 and 100000) order by b limit 1;
+```sql
+explain select * from t where (a between 1 and 1000) and (b between 50000 and 100000) order by b limit 1;
 ```
 
 ![图 8 使用 explain 方法查看执行计划 2](https://static001.geekbang.org/resource/image/48/b8/483bcb1ef3bb902844e80d9cbdd73ab8.png)
@@ -246,8 +246,8 @@ mysql> explain select * from t where (a between 1 and 1000) and (b between 50000
 
 如果你觉得修改语义这件事儿不太好，这里还有一种改法，图 11 是执行效果。
 
-```text
-mysql> select * from  (select * from t where (a between 1 and 1000)  and (b between 50000 and 100000) order by b limit 100)alias limit 1;
+```sql
+select * from  (select * from t where (a between 1 and 1000)  and (b between 50000 and 100000) order by b limit 100)alias limit 1;
 ```
 
 ![图 11 改写 SQL 的 explain](https://static001.geekbang.org/resource/image/b1/d7/b1a2ad43c78477d7f93dbc692cbaa0d7.png)

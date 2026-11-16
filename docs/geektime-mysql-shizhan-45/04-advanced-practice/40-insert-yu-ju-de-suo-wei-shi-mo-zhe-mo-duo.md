@@ -14,7 +14,7 @@ title: "40 insert 语句的锁为什么这么多？"
 
 我们先从昨天的问题说起吧。表 t 和 t2 的表结构、初始化数据语句如下，今天的例子我们还是针对这两个表展开。
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `c` int(11) DEFAULT NULL,
@@ -33,7 +33,7 @@ create table t2 like t
 
 现在，我们一起来看看为什么在可重复读隔离级别下，binlog\_format=statement 时执行：
 
-```text
+```sql
 insert into t2(c,d) select c,d from t;
 ```
 
@@ -49,7 +49,7 @@ insert into t2(c,d) select c,d from t;
 
 但如果没有锁的话，就可能出现 session B 的 insert 语句先执行，但是后写入 binlog 的情况。于是，在 binlog\_format=statement 的情况下，binlog 里面就记录了这样的语句序列：
 
-```text
+```sql
 insert into t values(-1,-1,-1);
 insert into t2(c,d) select c,d from t;
 ```
@@ -64,7 +64,7 @@ insert into t2(c,d) select c,d from t;
 
 此时，我们可以这么写这条 SQL 语句 ：
 
-```text
+```sql
 insert into t2(c,d)  (select c+1, d from t force index(c) order by c desc limit 1);
 ```
 
@@ -84,7 +84,7 @@ insert into t2(c,d)  (select c+1, d from t force index(c) order by c desc limit 
 
 那么，如果我们是要把这样的一行数据插入到表 t 中的话：
 
-```text
+```sql
 insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1);
 ```
 
@@ -134,7 +134,7 @@ insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1
 
 当然，由于这个语句涉及的数据量很小，你可以考虑使用内存临时表来做这个优化。使用内存临时表优化时，语句序列的写法如下：
 
-```text
+```sql
 create temporary table temp_t(c int,d int) engine=memory;
 insert into temp_t  (select c+1, d from t force index(c) order by c desc limit 1);
 insert into t select * from temp_t;
@@ -187,7 +187,7 @@ drop table temp_t;
 
 上面这个例子是主键冲突后直接报错，如果是改写成
 
-```text
+```sql
 insert into t values(11,10,10) on duplicate key update d=100;
 ```
 

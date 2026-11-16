@@ -104,8 +104,8 @@ max\_connections 的计算，不是看谁在 running，是只要连着就占用�
 
 比如，语句被错误地写成了 select \* from t where id + 1 = 10000，你可以通过下面的方式，增加一个语句改写规则。
 
-```text
-mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1");
+```sql
+insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1");
 
 call query_rewrite.flush_rewrite_rules();
 ```

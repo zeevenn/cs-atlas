@@ -8,7 +8,7 @@ title: "20 幻读是什么，幻读有什么问题？"
 
 为了便于说明问题，这一篇文章，我们就先使用一个小一点儿的表。建表和初始化语句如下（为了便于本期的例子说明，我把上篇文章中用到的表结构做了点儿修改）：
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `c` int(11) DEFAULT NULL,
@@ -25,7 +25,7 @@ insert into t values(0,0,0),(5,5,5),
 
 上期我留给你的问题是，下面的语句序列，是怎么加锁的，加的锁又是什么时候释放的呢？
 
-```text
+```sql
 begin;
 select * from t where d=5 for update;
 commit;
@@ -111,7 +111,7 @@ update 的加锁语义和 select …for update 是一致的，所以这时候加
 
 我统一放到一起的话，就是这样的：
 
-```text
+```sql
 update t set d=5 where id=0; /*(0,0,5)*/
 update t set c=5 where id=0; /*(0,5,5)*/
 
@@ -141,7 +141,7 @@ update t set d=100 where d=5;/*所有d=5的行，d改成100*/
 
 这样对于 id=0 这一行，在数据库里的最终结果还是 (0,5,5)。在 binlog 里面，执行序列是这样的：
 
-```text
+```sql
 insert into t values(1,1,5); /*(1,1,5)*/
 update t set c=5 where id=1; /*(1,5,5)*/
 
@@ -209,7 +209,7 @@ update t set c=5 where id=0; /*(0,5,5)*/
 
 在前面的文章中，就有同学提到了这个问题。我把他的问题转述一下，对应到我们这个例子的表来说，业务逻辑这样的：任意锁住一行，如果这一行不存在的话就插入，如果存在这一行就更新它的数据，代码如下：
 
-```text
+```sql
 begin;
 select * from t where id=N for update;
 

@@ -18,7 +18,7 @@ title: "30 答疑文章（二）：用动态的观点看加锁"
 
 接下来，我们的讨论还是基于下面这个表 t：
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `c` int(11) DEFAULT NULL,
@@ -37,7 +37,7 @@ insert into t values(0,0,0),(5,5,5),
 
 我们一起来看下这个例子，分析一下这条查询语句的加锁范围：
 
-```text
+```sql
 begin;
 select * from t where id>9 and id<12 order by id desc for update;
 ```
@@ -66,7 +66,7 @@ select * from t where id>9 and id<12 order by id desc for update;
 
 与上面这个例子对应的，是@发条橙子同学提出的问题：下面这个语句的加锁范围是什么？
 
-```text
+```sql
 begin;
 select id from t where c in(5,20,10) lock in share mode;
 ```
@@ -92,7 +92,7 @@ select id from t where c in(5,20,10) lock in share mode;
 
 如果同时有另外一个语句，是这么写的：
 
-```text
+```sql
 select id from t where c in(5,20,10) order by c desc for update;
 ```
 

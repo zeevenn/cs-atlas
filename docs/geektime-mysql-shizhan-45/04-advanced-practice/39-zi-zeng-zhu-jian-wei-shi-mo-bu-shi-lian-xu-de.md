@@ -12,7 +12,7 @@ title: "39 自增主键为什么不是连续的？"
 
 为了便于说明，我们创建一个表 t，其中 id 是自增主键字段、c 是唯一索引。
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `c` int(11) DEFAULT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE `t` (
 
 假设，表 t 里面已经有了(1,1,1)这条记录，这时我再执行一条插入数据命令：
 
-```text
+```sql
 insert into t values(null, 1, 1);
 ```
 
@@ -110,13 +110,13 @@ insert into t values(null, 1, 1);
 
 下面这个语句序列就可以构造不连续的自增 id，你可以自己验证一下。
 
-```text
+```sql
 insert into t values(null,1,1);
 begin;
 insert into t values(null,2,2);
 rollback;
 insert into t values(null,2,2);
-//插入的行是(3,2,2)
+-- 插入的行是(3,2,2)
 ```
 
 你可能会问，为什么在出现唯一键冲突或者回滚的时候，MySQL 没有把表 t 的自增值改回去呢？如果把表 t 的当前自增值从 3 改回 2，再插入新数据的时候，不就可以生成 id=2 的一行数据了吗？
@@ -209,7 +209,7 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb\_autoinc\_lock
 
 举个例子，我们一起看看下面的这个语句序列：
 
-```text
+```sql
 insert into t values(null, 1,1);
 insert into t values(null, 2,2);
 insert into t values(null, 3,3);
@@ -249,7 +249,7 @@ MySQL 5.1.22 版本开始引入的参数 innodb\_autoinc\_lock\_mode，控制了
 
 我们假设的是主库暂时不能修改引擎，那么就把备库的内存表引擎先都改成 InnoDB。对于每个内存表，执行
 
-```text
+```sql
 set sql_log_bin=off;
 alter table tbl_name engine=innodb;
 ```

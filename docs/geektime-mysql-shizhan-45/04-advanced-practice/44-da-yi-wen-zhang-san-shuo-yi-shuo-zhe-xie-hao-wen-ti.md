@@ -23,7 +23,7 @@ title: "44 答疑文章（三）：说一说这些好问题"
 
 为了同时回答这两个问题，我来构造两个表 a 和 b：
 
-```text
+```sql
 create table a(f1 int, f2 int, index(f1))engine=innodb;
 create table b(f1 int, f2 int)engine=innodb;
 insert into a values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);
@@ -34,7 +34,7 @@ insert into b values(3,3),(4,4),(5,5),(6,6),(7,7),(8,8);
 
 @郭健 同学提到的第二个问题，其实就是下面这两种写法的区别：
 
-```text
+```sql
 select * from a left join b on(a.f1=b.f1) and (a.f2=b.f2); /*Q1*/
 select * from a left join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q2*/
 ```
@@ -111,7 +111,7 @@ select * from a left join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q2*/
 
 这时候，我们再看看这两条语句：
 
-```text
+```sql
 select * from a join b on(a.f1=b.f1) and (a.f2=b.f2); /*Q3*/
 select * from a join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q4*/
 ```
@@ -124,7 +124,7 @@ select * from a join b on(a.f1=b.f1) where (a.f2=b.f2);/*Q4*/
 
 可以看到，这两条语句都被改写成：
 
-```text
+```sql
 select * from a join b where (a.f1=b.f1) and (a.f2=b.f2);
 ```
 
@@ -163,7 +163,7 @@ Simple Nested Loop Join 算法的执行逻辑是：顺序取出驱动表中的�
 
 我来展开一下他的问题：如果表 t 的字段 a 上没有索引，那么下面这两条语句：
 
-```text
+```sql
 select a from t group by a order by null;
 select distinct a from t;
 ```
@@ -172,7 +172,7 @@ select distinct a from t;
 
 首先需要说明的是，这种 group by 的写法，并不是 SQL 标准的写法。标准的 group by 语句，是需要在 select 部分加一个聚合函数，比如：
 
-```text
+```sql
 select a,count(*) from t group by a order by null;
 ```
 
@@ -200,7 +200,7 @@ select a,count(*) from t group by a order by null;
 
 而至于为什么不会发生不一致的情况，我们来看一下下面的这个例子。
 
-```text
+```sql
 create table t(id int auto_increment primary key);
 insert into t values(null);
 ```
@@ -248,7 +248,7 @@ SET INSERT_ID=1;
 
 这时的建表语句是：
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `ftime` datetime NOT NULL,
@@ -264,7 +264,7 @@ PARTITION BY RANGE (YEAR(ftime))
 
 当然，我的建议是你要尽量使用 InnoDB 引擎。InnoDB 表要求至少有一个索引，以自增字段作为第一个字段，所以需要加一个 id 的单独索引。
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `ftime` datetime NOT NULL,
@@ -281,7 +281,7 @@ PARTITION BY RANGE (YEAR(ftime))
 
 当然把字段反过来，创建成：
 
-```text
+```sql
   PRIMARY KEY (`id`,`ftime`),
   KEY `id` (`ftime`)
 ```

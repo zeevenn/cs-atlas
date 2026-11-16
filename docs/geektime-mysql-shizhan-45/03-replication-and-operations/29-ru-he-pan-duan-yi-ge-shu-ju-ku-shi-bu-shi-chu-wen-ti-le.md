@@ -16,7 +16,7 @@ title: "29 如何判断一个数据库是不是出问题了？"
 
 实际上，select 1 成功返回，只能说明这个库的进程还在，并不能说明主库没问题。现在，我们来看一下这个场景。
 
-```text
+```sql
 set global innodb_thread_concurrency=3;
 
 CREATE TABLE `t` (
@@ -78,8 +78,8 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 
 为了能够检测 InnoDB 并发线程数过多导致的系统不可用情况，我们需要找一个访问 InnoDB 的场景。一般的做法是，在系统库（mysql 库）里创建一个表，比如命名为 health\_check，里面只放一行数据，然后定期执行：
 
-```text
-mysql> select * from mysql.health_check;
+```sql
+select * from mysql.health_check;
 ```
 
 使用这个方法，我们可以检测出由于并发线程过多导致的数据库不可用的情况。
@@ -94,8 +94,8 @@ mysql> select * from mysql.health_check;
 
 既然要更新，就要放个有意义的字段，常见做法是放一个 timestamp 字段，用来表示最后一次执行检测的时间。这条更新语句类似于：
 
-```text
-mysql> update mysql.health_check set t_modified=now();
+```sql
+update mysql.health_check set t_modified=now();
 ```
 
 节点可用性的检测都应该包含主库和备库。如果用更新来检测主库的话，那么备库也要进行更新检测。
@@ -106,8 +106,8 @@ mysql> update mysql.health_check set t_modified=now();
 
 为了让主备之间的更新不产生冲突，我们可以在 mysql.health\_check 表上存入多行数据，并用 A、B 的 server\_id 做主键。
 
-```text
-mysql> CREATE TABLE `health_check` (
+```sql
+CREATE TABLE `health_check` (
   `id` int(11) NOT NULL,
   `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
@@ -173,22 +173,22 @@ file\_summary\_by\_event\_name 表里有很多行数据，我们先来看看 eve
 
 如果要打开 redo log 的时间监控，你可以执行这个语句：
 
-```text
-mysql> update setup_instruments set ENABLED='YES', Timed='YES' where name like '%wait/io/file/innodb/innodb_log_file%';
+```sql
+update setup_instruments set ENABLED='YES', Timed='YES' where name like '%wait/io/file/innodb/innodb_log_file%';
 ```
 
 假设，现在你已经开启了 redo log 和 binlog 这两个统计信息，那要怎么把这个信息用在实例状态诊断上呢？
 
 很简单，你可以通过 MAX\_TIMER 的值来判断数据库是否出问题了。比如，你可以设定阈值，单次 IO 请求时间超过 200 毫秒属于异常，然后使用类似下面这条语句作为检测逻辑。
 
-```text
-mysql> select event_name,MAX_TIMER_WAIT  FROM performance_schema.file_summary_by_event_name where event_name in ('wait/io/file/innodb/innodb_log_file','wait/io/file/sql/binlog') and MAX_TIMER_WAIT>200*1000000000;
+```sql
+select event_name,MAX_TIMER_WAIT  FROM performance_schema.file_summary_by_event_name where event_name in ('wait/io/file/innodb/innodb_log_file','wait/io/file/sql/binlog') and MAX_TIMER_WAIT>200*1000000000;
 ```
 
 发现异常后，取到你需要的信息，再通过下面这条语句：
 
-```text
-mysql> truncate table performance_schema.file_summary_by_event_name;
+```sql
+truncate table performance_schema.file_summary_by_event_name;
 ```
 
 把之前的统计信息清空。这样如果后面的监控中，再次出现这个异常，就可以加入监控累积值了。

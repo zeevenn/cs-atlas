@@ -12,8 +12,8 @@ title: "05 深入浅出索引（下）"
 
 下面是这个表的初始化语句。
 
-```text
-mysql> create table T (
+```sql
+create table T (
 ID int primary key,
 k int NOT NULL DEFAULT 0,
 s varchar(16) NOT NULL DEFAULT '',
@@ -53,7 +53,7 @@ insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,
 
 假设这个市民表的定义是这样的：
 
-```text
+```sql
 CREATE TABLE `tuser` (
   `id` int(11) NOT NULL,
   `id_card` varchar(32) DEFAULT NULL,
@@ -108,8 +108,8 @@ CREATE TABLE `tuser` (
 
 我们还是以市民表的联合索引（name, age）为例。如果现在有一个需求：检索出表中「名字第一个字是张，而且年龄是 10 岁的所有男孩」。那么，SQL 语句是这么写的：
 
-```text
-mysql> select * from tuser where name like '张%' and age=10 and ismale=1;
+```sql
+select * from tuser where name like '张%' and age=10 and ismale=1;
 ```
 
 你已经知道了前缀索引规则，所以这个语句在搜索索引树的时候，只能用 `张`，找到第一个满足条件的记录 ID3。当然，这还不错，总比全表扫描要好。
@@ -146,7 +146,7 @@ mysql> select * from tuser where name like '张%' and age=10 and ismale=1;
 
 实际上主键索引也是可以使用多个字段的。DBA 小吕在入职新公司的时候，就发现自己接手维护的库里面，有这么一个表，表结构定义类似这样的：
 
-```text
+```sql
 CREATE TABLE `geek` (
   `a` int(11) NOT NULL,
   `b` int(11) NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE `geek` (
 
 同事告诉他，是因为他们的业务里面有这样的两种语句：
 
-```text
+```sql
 select * from geek where c=N order by a limit 1;
 select * from geek where c=N order by b limit 1;
 ```

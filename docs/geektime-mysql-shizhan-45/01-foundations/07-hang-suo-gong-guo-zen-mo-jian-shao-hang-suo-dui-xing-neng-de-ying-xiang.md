@@ -107,17 +107,23 @@ MySQL 的行锁是在引擎层由各个引擎自己实现的。但并不是所�
 
 假设这个 DDL 是针对表 t1 的， 这里我把备份过程中几个关键的语句列出来：
 
-```text
-Q1:SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
-Q2:START TRANSACTION  WITH CONSISTENT SNAPSHOT；
+```sql
+-- Q1
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+-- Q2
+START TRANSACTION  WITH CONSISTENT SNAPSHOT；
 /* other tables */
-Q3:SAVEPOINT sp;
+-- Q3
+SAVEPOINT sp;
 /* 时刻 1 */
-Q4:show create table `t1`;
+-- Q4
+show create table `t1`;
 /* 时刻 2 */
-Q5:SELECT * FROM `t1`;
+-- Q5
+SELECT * FROM `t1`;
 /* 时刻 3 */
-Q6:ROLLBACK TO SAVEPOINT sp;
+-- Q6
+ROLLBACK TO SAVEPOINT sp;
 /* 时刻 4 */
 /* other tables */
 ```

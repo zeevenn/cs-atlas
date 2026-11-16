@@ -60,8 +60,8 @@ title: "24 MySQL 是怎么保证主备一致的？"
 
 为了便于描述 binlog 的这三种格式间的区别，我创建了一个表，并初始化几行数据。
 
-```text
-mysql> CREATE TABLE `t` (
+```sql
+CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `a` int(11) DEFAULT NULL,
   `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -81,14 +81,14 @@ insert into t values(5,5,'2018-11-09');
 
 注意，下面这个语句包含注释，如果你用 MySQL 客户端来做这个实验的话，要记得加-c 参数，否则客户端会自动去掉注释。
 
-```text
-mysql> delete from t /*comment*/  where a>=4 and t_modified<='2018-11-10' limit 1;
+```sql
+delete from t /*comment*/  where a>=4 and t_modified<='2018-11-10' limit 1;
 ```
 
 当 binlog\_format=statement 时，binlog 里面记录的就是 SQL 语句的原文。你可以用
 
-```text
-mysql> show binlog events in 'master.000001';
+```sql
+show binlog events in 'master.000001';
 ```
 
 命令看 binlog 中的内容。
@@ -180,8 +180,8 @@ mysqlbinlog  -vv data/master.000001 --start-position=8900;
 
 虽然 mixed 格式的 binlog 现在已经用得不多了，但这里我还是要再借用一下 mixed 格式来说明一个问题，来看一下这条 SQL 语句：
 
-```text
-mysql> insert into t values(10,10, now());
+```sql
+insert into t values(10,10, now());
 ```
 
 如果我们把 binlog 格式设置为 mixed，你觉得 MySQL 会把它记录为 row 格式还是 statement 格式呢？

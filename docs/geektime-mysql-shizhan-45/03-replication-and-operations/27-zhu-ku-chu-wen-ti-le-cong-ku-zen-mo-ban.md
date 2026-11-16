@@ -36,7 +36,7 @@ title: "27 主库出问题了，从库怎么办？"
 
 当我们把节点 B 设置成节点 A’ 的从库的时候，需要执行一条 change master 命令：
 
-```text
+```sql
 CHANGE MASTER TO
 MASTER_HOST=$host_name
 MASTER_PORT=$port
@@ -94,7 +94,7 @@ mysqlbinlog File --stop-datetime=T --start-datetime=T
 
 **一种做法是** ，主动跳过一个事务。跳过命令的写法是：
 
-```text
+```sql
 set global sql_slave_skip_counter=1;
 start slave;
 ```
@@ -162,7 +162,7 @@ GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例�
 
 我们在实例 X 中创建一个表 t。
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `c` int(11) DEFAULT NULL,
@@ -180,7 +180,7 @@ insert into t values(1,1);
 
 假设，现在这个实例 X 是另外一个实例 Y 的从库，并且此时在实例 Y 上执行了下面这条插入语句：
 
-```text
+```sql
 insert into t values(1,1);
 ```
 
@@ -190,7 +190,7 @@ insert into t values(1,1);
 
 处理方法就是，你可以执行下面的这个语句序列：
 
-```text
+```sql
 set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';
 begin;
 commit;
@@ -216,7 +216,7 @@ start slave;
 
 在 GTID 模式下，备库 B 要设置为新主库 A’ 的从库的语法如下：
 
-```text
+```sql
 CHANGE MASTER TO
 MASTER_HOST=$host_name
 MASTER_PORT=$port
@@ -273,7 +273,7 @@ master_auto_position=1
 * 执行完成后，查出这个 DDL 语句对应的 GTID，并记为 server\_uuid\_of\_Y:gno。
 * 到实例 X 上执行以下语句序列：
 
-```text
+```sql
 set GTID_NEXT="server_uuid_of_Y:gno";
 begin;
 commit;

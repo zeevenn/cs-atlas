@@ -8,8 +8,8 @@ title: "01 基础架构：一条 SQL 查询语句是如何执行的？"
 
 这是专栏的第一篇文章，我想来跟你聊聊 MySQL 的基础架构。我们经常说，看一个事儿千万不要直接陷入细节里，你应该先鸟瞰其全貌，这样能够帮助你从高维度理解问题。同样，对于 MySQL 的学习也是这样。平时我们使用数据库，看到的通常都是一个整体。比如，你有个最简单的表，表里只有一个 ID 字段，在执行下面这个查询语句时：
 
-```text
-mysql> select * from T where ID=10；
+```sql
+select * from T where ID=10；
 ```
 
 我们看到的只是输入一条语句，返回一个结果，却不知道这条语句在 MySQL 内部的执行过程。
@@ -80,8 +80,8 @@ MySQL 拿到一个查询请求后，会先到查询缓存看看，之前是不�
 
 好在 MySQL 也提供了这种按需使用的方式。你可以将参数 query\_cache\_type 设置成 DEMAND，这样对于默认的 SQL 语句都不使用查询缓存。而对于你确定要使用查询缓存的语句，可以用 SQL\_CACHE 显式指定，像下面这个语句一样：
 
-```text
-mysql> select SQL_CACHE * from T where ID=10；
+```sql
+select SQL_CACHE * from T where ID=10；
 ```
 
 需要注意的是，MySQL 8.0 版本直接将查询缓存的整块功能删掉了，也就是说 8.0 开始彻底没有这个功能了。
@@ -112,8 +112,8 @@ ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that 
 
 优化器是在表里面有多个索引的时候，决定使用哪个索引；或者在一个语句有多表关联（join）的时候，决定各个表的连接顺序。比如你执行下面这样的语句，这个语句是执行两个表的 join：
 
-```text
-mysql> select * from t1 join t2 using(ID)  where t1.c=10 and t2.d=20;
+```sql
+select * from t1 join t2 using(ID)  where t1.c=10 and t2.d=20;
 ```
 
 - 既可以先从表 t1 里面取出 c=10 的记录的 ID 值，再根据 ID 值关联到表 t2，再判断 t2 里面 d 的值是否等于 20。

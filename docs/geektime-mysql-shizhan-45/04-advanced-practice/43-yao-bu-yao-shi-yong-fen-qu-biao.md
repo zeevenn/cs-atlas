@@ -10,7 +10,7 @@ title: "43 要不要使用分区表？"
 
 为了说明分区表的组织形式，我先创建一个表 t：
 
-```text
+```sql
 CREATE TABLE `t` (
   `ftime` datetime NOT NULL,
   `c` int(11) DEFAULT NULL,

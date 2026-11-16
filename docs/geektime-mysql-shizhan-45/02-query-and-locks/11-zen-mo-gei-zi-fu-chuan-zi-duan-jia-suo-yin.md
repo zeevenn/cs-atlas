@@ -8,8 +8,8 @@ title: "11 怎么给字符串字段加索引？"
 
 假设，你现在维护一个支持邮箱登录的系统，用户表是这么定义的：
 
-```text
-mysql> create table SUser(
+```sql
+create table SUser(
 ID bigint unsigned primary key,
 email varchar(64),
 ...
@@ -18,8 +18,8 @@ email varchar(64),
 
 由于要使用邮箱登录，所以业务代码中一定会出现类似于这样的语句：
 
-```text
-mysql> select f1, f2 from SUser where email='xxx';
+```sql
+select f1, f2 from SUser where email='xxx';
 ```
 
 从第 4 和第 5 篇讲解索引的文章中，我们可以知道，如果 email 这个字段上没有索引，那么这个语句就只能做全表扫描。
@@ -28,10 +28,10 @@ mysql> select f1, f2 from SUser where email='xxx';
 
 比如，这两个在 email 字段上创建索引的语句：
 
-```text
-mysql> alter table SUser add index index1(email);
-或
-mysql> alter table SUser add index index2(email(6));
+```sql
+alter table SUser add index index1(email);
+-- 或
+alter table SUser add index index2(email(6));
 ```
 
 第一个语句创建的 index1 索引里面，包含了每个记录的整个字符串；而第二个语句创建的 index2 索引里面，对于每个记录都是只取前 6 个字节。
@@ -52,7 +52,7 @@ mysql> alter table SUser add index index2(email(6));
 
 接下来，我们再看看下面这个语句，在这两个索引定义下分别是怎么执行的。
 
-```text
+```sql
 select id,name,email from SUser where email='zhangssxyz@xxx.com';
 ```
 
@@ -85,14 +85,14 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 
 首先，你可以使用下面这个语句，算出这个列上有多少个不同的值：
 
-```text
-mysql> select count(distinct email) as L from SUser;
+```sql
+select count(distinct email) as L from SUser;
 ```
 
 然后，依次选取不同长度的前缀来看这个值，比如我们要看一下 4\~7 个字节的前缀索引，可以用这个语句：
 
-```text
-mysql> select
+```sql
+select
   count(distinct left(email,4)）as L4,
   count(distinct left(email,5)）as L5,
   count(distinct left(email,6)）as L6,
@@ -108,13 +108,13 @@ from SUser;
 
 你先来看看这个 SQL 语句：
 
-```text
+```sql
 select id,email from SUser where email='zhangssxyz@xxx.com';
 ```
 
 与前面例子中的 SQL 语句
 
-```text
+```sql
 select id,name,email from SUser where email='zhangssxyz@xxx.com';
 ```
 
@@ -144,22 +144,22 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 
 **第一种方式是使用倒序存储。** 如果你存储身份证号的时候把它倒过来存，每次查询的时候，你可以这么写：
 
-```text
-mysql> select field_list from t where id_card = reverse('input_id_card_string');
+```sql
+select field_list from t where id_card = reverse('input_id_card_string');
 ```
 
 由于身份证号的最后 6 位没有地址码这样的重复逻辑，所以最后这 6 位很可能就提供了足够的区分度。当然了，实践中你不要忘记使用 count(distinct)方法去做个验证。
 
 **第二种方式是使用 hash 字段。** 你可以在表上再创建一个整数字段，来保存身份证的校验码，同时在这个字段上创建索引。
 
-```text
-mysql> alter table t add id_card_crc int unsigned, add index(id_card_crc);
+```sql
+alter table t add id_card_crc int unsigned, add index(id_card_crc);
 ```
 
 然后每次插入新记录的时候，都同时用 crc32()这个函数得到校验码填到这个新字段。由于校验码可能存在冲突，也就是说两个不同的身份证号通过 crc32()函数得到的结果可能是相同的，所以你的查询语句 where 部分要判断 id\_card 的值是否精确相同。
 
-```text
-mysql> select field_list from t where id_card_crc=crc32('input_id_card_string') and id_card='input_id_card_string'
+```sql
+select field_list from t where id_card_crc=crc32('input_id_card_string') and id_card='input_id_card_string'
 ```
 
 这样，索引的长度变成了 4 个字节，比原来小了很多。

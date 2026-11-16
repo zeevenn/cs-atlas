@@ -297,7 +297,7 @@ mysql> SELECT * FROM hero;
 
 比方说现在系统里有两个 `事务id` 分别为 `100`、`200` 的事务在执行：
 
-```text
+```sql
 # Transaction 100
 BEGIN;
 
@@ -306,7 +306,7 @@ UPDATE hero SET name = '关羽' WHERE number = 1;
 UPDATE hero SET name = '张飞' WHERE number = 1;
 ```
 
-```text
+```sql
 # Transaction 200
 BEGIN;
 
@@ -323,7 +323,7 @@ BEGIN;
 
 假设现在有一个使用 `READ COMMITTED` 隔离级别的事务开始执行：
 
-```text
+```sql
 # 使用READ COMMITTED隔离级别的事务
 BEGIN;
 
@@ -340,7 +340,7 @@ SELECT * FROM hero WHERE number = 1; # 得到的列name的值为'刘备'
 
 之后，我们把 `事务id` 为 `100` 的事务提交一下，就像这样：
 
-```text
+```sql
 # Transaction 100
 BEGIN;
 
@@ -353,7 +353,7 @@ COMMIT;
 
 然后再到 `事务id` 为 `200` 的事务中更新一下表 `hero` 中 `number` 为 `1` 的记录：
 
-```text
+```sql
 # Transaction 200
 BEGIN;
 
@@ -371,7 +371,7 @@ UPDATE hero SET name = '诸葛亮' WHERE number = 1;
 
 然后再到刚才使用 `READ COMMITTED` 隔离级别的事务中继续查找这个 `number` 为 `1` 的记录，如下：
 
-```text
+```sql
 # 使用READ COMMITTED隔离级别的事务
 BEGIN;
 
@@ -397,7 +397,7 @@ SELECT * FROM hero WHERE number = 1; # 得到的列name的值为'张飞'
 
 比方说现在系统里有两个 `事务id` 分别为 `100`、`200` 的事务在执行：
 
-```text
+```sql
 # Transaction 100
 BEGIN;
 
@@ -406,7 +406,7 @@ UPDATE hero SET name = '关羽' WHERE number = 1;
 UPDATE hero SET name = '张飞' WHERE number = 1;
 ```
 
-```text
+```sql
 # Transaction 200
 BEGIN;
 
@@ -420,7 +420,7 @@ BEGIN;
 
 假设现在有一个使用 `REPEATABLE READ` 隔离级别的事务开始执行：
 
-```text
+```sql
 # 使用REPEATABLE READ隔离级别的事务
 BEGIN;
 
@@ -437,7 +437,7 @@ SELECT * FROM hero WHERE number = 1; # 得到的列name的值为'刘备'
 
 之后，我们把 `事务id` 为 `100` 的事务提交一下，就像这样：
 
-```text
+```sql
 # Transaction 100
 BEGIN;
 
@@ -450,7 +450,7 @@ COMMIT;
 
 然后再到 `事务id` 为 `200` 的事务中更新一下表 `hero` 中 `number` 为 `1` 的记录：
 
-```text
+```sql
 # Transaction 200
 BEGIN;
 
@@ -468,7 +468,7 @@ UPDATE hero SET name = '诸葛亮' WHERE number = 1;
 
 然后再到刚才使用 `REPEATABLE READ` 隔离级别的事务中继续查找这个 `number` 为 `1` 的记录，如下：
 
-```text
+```sql
 # 使用REPEATABLE READ隔离级别的事务
 BEGIN;
 

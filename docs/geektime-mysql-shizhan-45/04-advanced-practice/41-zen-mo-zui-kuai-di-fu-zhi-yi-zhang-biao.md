@@ -10,7 +10,7 @@ title: "41 怎么最快地复制一张表？"
 
 为了便于说明，我还是先创建一个表 db1.t，并插入 1000 行数据，同时创建一个相同结构的表 db2.t。
 
-```text
+```sql
 create database db1;
 use db1;
 
@@ -79,7 +79,7 @@ mysql -h127.0.0.1 -P13000  -uroot db2 -e "source /client_tmp/t.sql"
 
 另一种方法是直接将结果导出成.csv 文件。MySQL 提供了下面的语法，用来将查询结果导出到服务端本地目录：
 
-```text
+```sql
 select * from db1.t where a>900 into outfile '/server_tmp/t.csv';
 ```
 
@@ -95,7 +95,7 @@ select * from db1.t where a>900 into outfile '/server_tmp/t.csv';
 
 得到.csv 导出文件后，你就可以用下面的 load data 命令将数据导入到目标表 db2.t 中。
 
-```text
+```sql
 load data infile '/server_tmp/t.csv' into table db2.t;
 ```
 

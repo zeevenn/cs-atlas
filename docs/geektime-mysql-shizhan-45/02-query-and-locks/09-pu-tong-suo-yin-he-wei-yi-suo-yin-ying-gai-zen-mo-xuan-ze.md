@@ -18,7 +18,7 @@ title: "09 普通索引和唯一索引，应该怎么选择？"
 
 假设你在维护一个市民系统，每个人都有一个唯一的身份证号，而且业务代码已经保证了不会写入两个重复的身份证号。如果市民系统需要按照身份证号查姓名，就会执行类似这样的 SQL 语句：
 
-```text
+```sql
 select name from CUser where id_card = 'xxxxxxxyyyyyyzzzzz';
 ```
 
@@ -123,8 +123,8 @@ change buffer 用的是 buffer pool 里的内存，因此不能无限增大。ch
 
 现在，我们要在表上执行这个插入语句：
 
-```text
-mysql> insert into t(id,k) values(id1,k1),(id2,k2);
+```sql
+insert into t(id,k) values(id1,k1),(id2,k2);
 ```
 
 这里，我们假设当前 k 索引树的状态，查找到位置后，k1 所在的数据页在内存(InnoDB buffer pool)中，k2 所在的数据页不在内存中。如图 2 所示是带 change buffer 的更新状态图。

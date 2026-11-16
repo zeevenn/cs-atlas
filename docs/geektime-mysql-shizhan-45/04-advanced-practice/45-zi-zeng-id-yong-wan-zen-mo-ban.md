@@ -18,10 +18,10 @@ MySQL 里有很多自增的 id，每个自增 id 都是定义了初始值，然�
 
 我们可以通过下面这个语句序列验证一下：
 
-```text
+```sql
 create table t(id int unsigned auto_increment primary key) auto_increment=4294967295;
 insert into t values(null);
-//成功插入一行 4294967295
+-- 成功插入一行 4294967295
 show create table t;
 /* CREATE TABLE `t` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -30,7 +30,7 @@ show create table t;
 */
 
 insert into t values(null);
-//Duplicate entry '4294967295' for key 'PRIMARY'
+-- Duplicate entry '4294967295' for key 'PRIMARY'
 ```
 
 可以看到，第一个 insert 语句插入数据成功后，这个表的 AUTO\_INCREMENT 没有改变（还是 4294967295），就导致了第二个 insert 语句又拿到相同的自增 id 值，再试图执行插入语句，报主键冲突错误。

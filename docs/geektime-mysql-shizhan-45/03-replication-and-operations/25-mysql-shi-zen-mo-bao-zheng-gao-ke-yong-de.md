@@ -130,8 +130,8 @@ seconds\_behind\_master 的计算方法是这样的：
 
 接下来，我就和你分享一个可用性优先流程产生数据不一致的例子。假设有一个表 t：
 
-```text
-mysql> CREATE TABLE `t` (
+```sql
+CREATE TABLE `t` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `c` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -142,7 +142,7 @@ insert into t(c) values(1),(2),(3);
 
 这个表定义了一个自增主键 id，初始化数据后，主库和备库上都是 3 行数据。接下来，业务人员要继续在表 t 上执行两条插入语句的命令，依次是：
 
-```text
+```sql
 insert into t(c) values(4);
 insert into t(c) values(5);
 ```
@@ -250,7 +250,7 @@ insert into t(c) values(5);
 
 如果出现了循环复制，可以在 A 或者 A’ 上，执行如下命令：
 
-```text
+```sql
 stop slave；
 CHANGE MASTER TO IGNORE_SERVER_IDS=(server_id_of_B);
 start slave;
@@ -258,7 +258,7 @@ start slave;
 
 这样这个节点收到日志后就不会再执行。过一段时间后，再执行下面的命令把这个值改回来。
 
-```text
+```sql
 stop slave；
 CHANGE MASTER TO IGNORE_SERVER_IDS=();
 start slave;

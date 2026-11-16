@@ -16,7 +16,7 @@ title: "37 什么时候会使用内部临时表？"
 
 为了便于量化分析，我用下面的表 t1 来举例。
 
-```text
+```sql
 create table t1(id int primary key, a int, b int, index(a));
 delimiter ;;
 create procedure idata()
@@ -35,7 +35,7 @@ call idata();
 
 然后，我们执行下面这条语句：
 
-```text
+```sql
 (select 1000 as f) union (select id from t1 order by id desc limit 2);
 ```
 
@@ -81,7 +81,7 @@ call idata();
 
 另外一个常见的使用临时表的例子是 group by，我们来看一下这个语句：
 
-```text
+```sql
 select id%10 as m, count(*) as c from t1 group by m;
 ```
 
@@ -127,7 +127,7 @@ select id%10 as m, count(*) as c from t1 group by m;
 
 如果你的需求并不需要对结果进行排序，那你可以在 SQL 语句末尾增加 order by null，也就是改成：
 
-```text
+```sql
 select id%10 as m, count(*) as c from t1 group by m order by null;
 ```
 
@@ -143,7 +143,7 @@ select id%10 as m, count(*) as c from t1 group by m order by null;
 
 如果我执行下面这个语句序列：
 
-```text
+```sql
 set tmp_table_size=1024;
 select id%100 as m, count(*) as c from t1 group by m order by null limit 10;
 ```
@@ -185,13 +185,13 @@ group by 的语义逻辑，是统计不同的值出现的个数。但是，由�
 
 在 MySQL 5.7 版本支持了 generated column 机制，用来实现列数据的关联更新。你可以用下面的方法创建一个列 z，然后在 z 列上创建一个索引（如果是 MySQL 5.6 及之前的版本，你也可以创建普通列和索引，来解决这个问题）。
 
-```text
+```sql
 alter table t1 add column z int generated always as(id % 100), add index(z);
 ```
 
 这样，索引 z 上的数据就是类似图 10 这样有序的了。上面的 group by 语句就可以改成：
 
-```text
+```sql
 select z, count(*) as c from t1 group by z;
 ```
 
@@ -219,7 +219,7 @@ MySQL 的优化器一看，磁盘临时表是 B+ 树存储，存储效率不如�
 
 因此，下面这个语句
 
-```text
+```sql
 select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 ```
 

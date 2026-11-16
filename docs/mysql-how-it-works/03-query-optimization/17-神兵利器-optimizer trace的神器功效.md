@@ -37,7 +37,7 @@ Query OK, 0 rows affected (0.00 sec)
 
 完整的使用 `optimizer trace` 功能的步骤总结如下：
 
-```text
+```sql
 # 1. 打开optimizer trace功能 (默认情况下它是关闭的):
 SET optimizer_trace="enabled=on";
 

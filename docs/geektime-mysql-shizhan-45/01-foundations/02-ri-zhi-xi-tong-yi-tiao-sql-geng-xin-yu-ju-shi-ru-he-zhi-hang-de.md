@@ -12,14 +12,14 @@ title: "02 日志系统：一条 SQL 更新语句是如何执行的？"
 
 我们还是从一个表的一条更新语句说起，下面是这个表的创建语句，这个表有一个主键 ID 和一个整型字段 c：
 
-```text
-mysql> create table T(ID int primary key, c int);
+```sql
+create table T(ID int primary key, c int);
 ```
 
 如果要将 ID=2 这一行的值加 1，SQL 语句就会这么写：
 
-```text
-mysql> update T set c=c+1 where ID=2;
+```sql
+update T set c=c+1 where ID=2;
 ```
 
 前面我有跟你介绍过 SQL 语句基本的执行链路，这里我再把那张图拿过来，你也可以先简单看看这个图回顾下。首先，可以确定的说，查询语句的那一套流程，更新语句也是同样会走一遍。

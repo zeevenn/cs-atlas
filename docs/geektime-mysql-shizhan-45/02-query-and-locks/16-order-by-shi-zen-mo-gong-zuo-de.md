@@ -8,7 +8,7 @@ title: "16 order by 是怎么工作的？"
 
 假设这个表的部分定义是这样的：
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `city` varchar(16) NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE `t` (
 
 这时，你的 SQL 语句可以这么写：
 
-```text
+```sql
 select city,name,age from t where city='杭州' order by name limit 1000  ;
 ```
 
@@ -70,7 +70,7 @@ sort\_buffer\_size，就是 MySQL 为排序开辟的内存（sort\_buffer）的�
 
 你可以用下面介绍的方法，来确定一个排序语句是否使用了临时文件。
 
-```text
+```sql
 /* 打开optimizer_trace，只对本线程有效 */
 SET optimizer_trace='enabled=on';
 
@@ -124,7 +124,7 @@ sort\_mode 里面的 packed\_additional\_fields 的意思是，排序过程对�
 
 接下来，我来修改一个参数，让 MySQL 采用另外一种算法。
 
-```text
+```sql
 SET max_length_for_sort_data = 16;
 ```
 
@@ -195,7 +195,7 @@ city、name、age 这三个字段的定义总长度是 36，我把 max\_length\_
 
 所以，我们可以在这个市民表上创建一个 city 和 name 的联合索引，对应的 SQL 语句是：
 
-```text
+```sql
 alter table t add index city_user(city, name);
 ```
 
@@ -234,7 +234,7 @@ alter table t add index city_user(city, name);
 
 针对这个查询，我们可以创建一个 city、name 和 age 的联合索引，对应的 SQL 语句就是：
 
-```text
+```sql
 alter table t add index city_user_age(city, name, age);
 ```
 
@@ -268,8 +268,8 @@ alter table t add index city_user_age(city, name, age);
 
 假设你的表里面已经有了 city\_name(city, name)这个联合索引，然后你要查杭州和苏州两个城市中所有的市民的姓名，并且按名字排序，显示前 100 条记录。如果 SQL 查询语句是这么写的 ：
 
-```text
-mysql> select * from t where city in ('杭州',"苏州") order by name limit 100;
+```sql
+select * from t where city in ('杭州',"苏州") order by name limit 100;
 ```
 
 那么，这个语句执行的时候会有排序过程吗，为什么？

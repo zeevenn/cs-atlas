@@ -14,13 +14,13 @@ title: "第 14 章 不好看就要多整容-MySQL 基于规则的优化（内含
 
 有时候表达式里有许多无用的括号，比如这样：
 
-```text
+```sql
 ((a = 5 AND b = c) OR ((a > c) AND (c < 5)))
 ```
 
 看着就很烦，优化器会把那些用不到的括号给干掉，就是这样：
 
-```text
+```sql
 (a = 5 and b = c) OR (a > c AND c < 5)
 ```
 
@@ -28,19 +28,19 @@ title: "第 14 章 不好看就要多整容-MySQL 基于规则的优化（内含
 
 有时候某个表达式是某个列和某个常量做等值匹配，比如这样：
 
-```text
+```sql
 a = 5
 ```
 
 当这个表达式和其他涉及列 `a` 的表达式使用 `AND` 连接起来时，可以将其他表达式中的 `a` 的值替换为 `5`，比如这样：
 
-```text
+```sql
 a = 5 AND b > a
 ```
 
 就可以被转换为：
 
-```text
+```sql
 a = 5 AND b > 5
 ```
 
@@ -51,13 +51,13 @@ a = 5 AND b > 5
 
 有时候多个列之间存在等值匹配的关系，比如这样：
 
-```text
+```sql
 a = b and b = c and c = 5
 ```
 
 这个表达式可以被简化为：
 
-```text
+```sql
 a = 5 and b = 5 and c = 5
 ```
 
@@ -65,19 +65,19 @@ a = 5 and b = 5 and c = 5
 
 对于一些明显永远为 `TRUE` 或者 `FALSE` 的表达式，优化器会移除掉它们，比如这个表达式：
 
-```text
+```sql
 (a < 1 and b = b) OR (a = 6 OR 5 != 5)
 ```
 
 很明显，`b = b` 这个表达式永远为 `TRUE`，`5 != 5` 这个表达式永远为 `FALSE`，所以简化后的表达式就是这样的：
 
-```text
+```sql
 (a < 1 and TRUE) OR (a = 6 OR FALSE)
 ```
 
 可以继续被简化为：
 
-```text
+```sql
 a < 1 OR a = 6
 ```
 
@@ -85,25 +85,25 @@ a < 1 OR a = 6
 
 在查询开始执行之前，如果表达式中只包含常量的话，它的值会被先计算出来，比如这个：
 
-```text
+```sql
 a = 5 + 1
 ```
 
 因为 `5 + 1` 这个表达式只包含常量，所以就会被化简成：
 
-```text
+```sql
 a = 6
 ```
 
 但是这里需要注意的是，如果某个列并不是以单独的形式作为表达式的操作数时，比如出现在函数中，出现在某个更复杂表达式中，就像这样：
 
-```text
+```sql
 ABS(a) > 5
 ```
 
 或者：
 
-```text
+```sql
 -a < -8
 ```
 
@@ -958,13 +958,13 @@ SELECT ... FROM outer_tables
 
     其实对于任意一个 IN 子查询来说，都可以被转为 `EXISTS` 子查询，通用的例子如下：
 
-    ```text
+    ```sql
     outer_expr IN (SELECT inner_expr FROM ... WHERE subquery_where)
     ```
 
     可以被转换为：
 
-    ```text
+    ```sql
     EXISTS (SELECT inner_expr FROM ... WHERE subquery_where AND outer_expr=inner_expr)
     ```
 

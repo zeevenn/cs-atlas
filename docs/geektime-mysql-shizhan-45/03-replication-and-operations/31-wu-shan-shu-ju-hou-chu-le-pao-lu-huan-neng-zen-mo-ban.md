@@ -203,7 +203,7 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 一个空表就只有一个间隙。比如，在空表上执行：
 
-```text
+```sql
 begin;
 select * from t where id>1 for update;
 ```

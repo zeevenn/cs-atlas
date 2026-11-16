@@ -27,8 +27,8 @@ title: "03 事务隔离：为什么你改了我还看不见？"
 
 其中读提交和可重复读比较难理解，所以我用一个例子说明这几种隔离级别。假设数据表 T 中只有一列，其中一行的值为 1，下面是按照时间顺序执行两个事务的行为。
 
-```text
-mysql> create table T(c int) engine=InnoDB;
+```sql
+create table T(c int) engine=InnoDB;
 insert into T(c) values(1);
 ```
 
@@ -112,7 +112,7 @@ mysql> show variables like 'transaction_isolation';
 
 你可以在 information\_schema 库的 innodb\_trx 这个表中查询长事务，比如下面这个语句，用于查找持续时间超过 60s 的事务。
 
-```text
+```sql
 select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx_started))>60
 ```
 

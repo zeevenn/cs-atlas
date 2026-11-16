@@ -14,7 +14,7 @@ title: "35 join 语句怎么优化？"
 
 为了便于分析，我还是创建两个表 t1、t2 来和你展开今天的问题。
 
-```text
+```sql
 create table t1(id int primary key, a int, b int, index(a));
 create table t2 like t1;
 drop procedure idata;
@@ -51,7 +51,7 @@ call idata();
 
 我们先来看看这个问题。假设，我执行这个语句：
 
-```text
+```sql
 select * from t1 where a>=1 and a<=100;
 ```
 
@@ -121,7 +121,7 @@ NLJ 算法执行的逻辑是：从驱动表 t1，一行行地取出 a 的值，�
 
 如果要使用 BKA 优化算法的话，你需要在执行 SQL 语句之前，先设置
 
-```text
+```sql
 set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 ```
 
@@ -165,7 +165,7 @@ set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 
 但是，有时候你确实会碰到一些不适合在被驱动表上建索引的情况。比如下面这个语句：
 
-```text
+```sql
 select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 ```
 
@@ -200,7 +200,7 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 
 此时，对应的 SQL 语句的写法如下：
 
-```text
+```sql
 create temporary table temp_t(id int primary key, a int, b int, index(b))engine=innodb;
 insert into temp_t select * from t2 where b>=1 and b<=2000;
 select * from t1 join temp_t on (t1.b=temp_t.b);
@@ -250,7 +250,7 @@ select * from t1 join temp_t on (t1.b=temp_t.b);
 
 我们在讲 join 语句的这两篇文章中，都只涉及到了两个表的 join。那么，现在有一个三个表 join 的需求，假设这三个表的表结构如下：
 
-```text
+```sql
 CREATE TABLE `t1` (
  `id` int(11) NOT NULL,
  `a` int(11) DEFAULT NULL,
@@ -261,12 +261,12 @@ CREATE TABLE `t1` (
 
 create table t2 like t1;
 create table t3 like t2;
-insert into ... //初始化三张表的数据
+insert into ... -- 初始化三张表的数据
 ```
 
 语句的需求实现如下的 join 逻辑：
 
-```text
+```sql
 select * from t1 join t2 on(t1.a=t2.a) join t3 on (t2.b=t3.b) where t1.c>=X and t2.c>=Y and t3.c>=Z;
 ```
 

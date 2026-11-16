@@ -12,8 +12,8 @@ title: "18 为什么这些 SQL 语句逻辑相同，性能却差异巨大？"
 
 假设你现在维护了一个交易系统，其中交易记录表 tradelog 包含交易流水号（tradeid）、交易员 id（operator）、交易时间（t\_modified）等字段。为了便于描述，我们先忽略其他字段。这个表的建表语句如下：
 
-```text
-mysql> CREATE TABLE `tradelog` (
+```sql
+CREATE TABLE `tradelog` (
   `id` int(11) NOT NULL,
   `tradeid` varchar(32) DEFAULT NULL,
   `operator` int(11) DEFAULT NULL,
@@ -26,8 +26,8 @@ mysql> CREATE TABLE `tradelog` (
 
 假设，现在已经记录了从 2016 年初到 2018 年底的所有数据，运营部门有一个需求是，要统计发生在所有年份中 7 月份的交易记录总数。这个逻辑看上去并不复杂，你的 SQL 语句可能会这么写：
 
-```text
-mysql> select count(*) from tradelog where month(t_modified)=7;
+```sql
+select count(*) from tradelog where month(t_modified)=7;
 ```
 
 由于 t\_modified 字段上有索引，于是你就很放心地在生产库中执行了这条语句，但却发现执行了特别久，才返回了结果。
@@ -64,11 +64,11 @@ key="t\_modified"表示的是，使用了 t\_modified 这个索引；我在测�
 
 也就是说，由于在 t\_modified 字段加了 month()函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 t\_modified 索引的快速定位能力了。
 
-```text
-mysql> select count(*) from tradelog where
-    -> (t_modified >= '2016-7-1' and t_modified<'2016-8-1') or
-    -> (t_modified >= '2017-7-1' and t_modified<'2017-8-1') or
-    -> (t_modified >= '2018-7-1' and t_modified<'2018-8-1');
+```sql
+select count(*) from tradelog where
+    (t_modified >= '2016-7-1' and t_modified<'2016-8-1') or
+    (t_modified >= '2017-7-1' and t_modified<'2017-8-1') or
+    (t_modified >= '2018-7-1' and t_modified<'2018-8-1');
 ```
 
 当然，如果你的系统上线时间更早，或者后面又插入了之后年份的数据的话，你就需要再把其他年份补齐。
@@ -83,8 +83,8 @@ mysql> select count(*) from tradelog where
 
 我们一起看一下这条 SQL 语句：
 
-```text
-mysql> select * from tradelog where tradeid=110717;
+```sql
+select * from tradelog where tradeid=110717;
 ```
 
 交易编号 tradeid 这个字段上，本来就有索引，但是 explain 的结果却显示，这条语句需要走全表扫描。你可能也发现了，tradeid 的字段类型是 varchar(32)，而输入的参数却是整型，所以需要做类型转换。
@@ -111,21 +111,21 @@ mysql> select * from tradelog where tradeid=110717;
 
 这时，你再看这个全表扫描的语句：
 
-```text
-mysql> select * from tradelog where tradeid=110717;
+```sql
+select * from tradelog where tradeid=110717;
 ```
 
 就知道对于优化器来说，这个语句相当于：
 
-```text
-mysql> select * from tradelog where  CAST(tradid AS signed int) = 110717;
+```sql
+select * from tradelog where  CAST(tradid AS signed int) = 110717;
 ```
 
 也就是说，这条语句触发了我们上面说到的规则：对索引字段做函数操作，优化器会放弃走树搜索功能。
 
 现在，我留给你一个小问题，id 的类型是 int，如果执行下面这个语句，是否会导致全表扫描呢？
 
-```text
+```sql
 select * from tradelog where id="83126";
 ```
 
@@ -137,8 +137,8 @@ select * from tradelog where id="83126";
 
 假设系统里还有另外一个表 trade\_detail，用于记录交易的操作细节。为了便于量化分析和复现，我往交易日志表 tradelog 和交易详情表 trade\_detail 这两个表里插入一些数据。
 
-```text
-mysql> CREATE TABLE `trade_detail` (
+```sql
+CREATE TABLE `trade_detail` (
   `id` int(11) NOT NULL,
   `tradeid` varchar(32) DEFAULT NULL,
   `trade_step` int(11) DEFAULT NULL, /*操作步骤*/
@@ -166,8 +166,8 @@ insert into trade_detail values(11, 'aaaaaaac', 4, 'commit');
 
 这时候，如果要查询 id=2 的交易的所有操作步骤信息，SQL 语句可以这么写：
 
-```text
-mysql> select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and l.id=2; /*语句Q1*/
+```sql
+select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and l.id=2; /*语句Q1*/
 ```
 
 ![图 4 语句 Q1 的 explain 结果](https://static001.geekbang.org/resource/image/ad/22/adfe464af1d15f3261b710a806c0fa22.png)
@@ -201,8 +201,8 @@ mysql> select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and 
 
 我们说问题是出在执行步骤的第 3 步，如果单独把这一步改成 SQL 语句的话，那就是：
 
-```text
-mysql> select * from trade_detail where tradeid=$L2.tradeid.value;
+```sql
+select * from trade_detail where tradeid=$L2.tradeid.value;
 ```
 
 其中，$L2.tradeid.value 的字符集是 utf8mb4。
@@ -215,7 +215,7 @@ mysql> select * from trade_detail where tradeid=$L2.tradeid.value;
 
 也就是说，实际上这个语句等同于下面这个写法：
 
-```text
+```sql
 select * from trade_detail  where CONVERT(traideid USING utf8mb4)=$L2.tradeid.value;
 ```
 
@@ -227,8 +227,8 @@ CONVERT()函数，在这里的意思是把输入的字符串转成 utf8mb4 字�
 
 作为对比验证，我给你提另外一个需求，「查找 trade\_detail 表里 id=4 的操作，对应的操作者是谁」，再来看下这个语句和它的执行计划。
 
-```text
-mysql>select l.operator from tradelog l , trade_detail d where d.tradeid=l.tradeid and d.id=4;
+```sql
+select l.operator from tradelog l , trade_detail d where d.tradeid=l.tradeid and d.id=4;
 ```
 
 ![图 6 explain 结果](https://static001.geekbang.org/resource/image/92/11/92cb498ceb3557e41700fae53ce9bd11.png)
@@ -241,13 +241,13 @@ mysql>select l.operator from tradelog l , trade_detail d where d.tradeid=l.trade
 
 假设驱动表 trade\_detail 里 id=4 的行记为 R4，那么在连接的时候（图 5 的第 3 步），被驱动表 tradelog 上执行的就是类似这样的 SQL 语句：
 
-```text
+```sql
 select operator from tradelog  where traideid =$R4.tradeid.value;
 ```
 
 这时候$R4.tradeid.value 的字符集是 utf8, 按照字符集转换规则，要转成 utf8mb4，所以这个过程就被改写成：
 
-```text
+```sql
 select operator from tradelog  where traideid =CONVERT($R4.tradeid.value USING utf8mb4);
 ```
 
@@ -255,7 +255,7 @@ select operator from tradelog  where traideid =CONVERT($R4.tradeid.value USING u
 
 理解了原理以后，就可以用来指导操作了。如果要优化语句
 
-```text
+```sql
 select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and l.id=2;
 ```
 
@@ -263,14 +263,14 @@ select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and l.id=2;
 
 * 比较常见的优化方法是，把 trade\_detail 表上的 tradeid 字段的字符集也改成 utf8mb4，这样就没有字符集转换的问题了。
 
-```text
+```sql
 alter table trade_detail modify tradeid varchar(32) CHARACTER SET utf8mb4 default null;
 ```
 
 * 如果能够修改字段的字符集的话，是最好不过了。但如果数据量比较大， 或者业务上暂时不能做这个 DDL 的话，那就只能采用修改 SQL 语句的方法了。
 
-```text
-mysql> select d.* from tradelog l , trade_detail d where d.tradeid=CONVERT(l.tradeid USING utf8) and l.id=2;
+```sql
+select d.* from tradelog l , trade_detail d where d.tradeid=CONVERT(l.tradeid USING utf8) and l.id=2;
 ```
 
 ![图 7 SQL 语句优化后的 explain 结果](https://static001.geekbang.org/resource/image/aa/d6/aa844a7bf35d330b9ec96fc159331bd6.png)
@@ -301,8 +301,8 @@ MySQL 的优化器确实有「偷懒」的嫌疑，即使简单地把 where id+1
 
 这里我给出一种方法，取 Y1、Y2 和 Y3 里面最大的一个数，记为 M，最小的一个数记为 N，然后执行下面这条 SQL 语句：
 
-```text
-mysql> select * from t limit N, M-N+1;
+```sql
+select * from t limit N, M-N+1;
 ```
 
 再加上取整个表总行数的 C 行，这个方案的扫描行数总共只需要 C+M+1 行。

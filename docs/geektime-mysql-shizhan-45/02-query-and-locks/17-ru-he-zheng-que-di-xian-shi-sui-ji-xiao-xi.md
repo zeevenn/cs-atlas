@@ -12,8 +12,8 @@ title: "17 如何正确地显示随机消息？"
 
 为了便于理解，我对这个例子进行了简化：去掉每个级别的用户都有一个对应的单词表这个逻辑，直接就是从一个单词表中随机选出三个单词。这个表的建表语句和初始数据的命令如下：
 
-```text
-mysql> CREATE TABLE `words` (
+```sql
+CREATE TABLE `words` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `word` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -40,8 +40,8 @@ call idata();
 
 首先，你会想到用 order by rand()来实现这个逻辑。
 
-```text
-mysql> select word from words order by rand() limit 3;
+```sql
+select word from words order by rand() limit 3;
 ```
 
 这个语句的意思很直白，随机排序取前 3 个。虽然这个 SQL 语句写法很简单，但执行流程却有点复杂的。
@@ -128,7 +128,7 @@ select word from words order by rand() limit 3;
 
 为了复现这个过程，我把 tmp\_table\_size 设置成 1024，把 sort\_buffer\_size 设置成 32768, 把 max\_length\_for\_sort\_data 设置成 16。
 
-```text
+```sql
 set tmp_table_size=1024;
 set sort_buffer_size=32768;
 set max_length_for_sort_data=16;
@@ -181,7 +181,7 @@ SELECT * FROM `information_schema`.`OPTIMIZER_TRACE`\G
 
 我们再看一下上面一篇文章的 SQL 查询语句：
 
-```text
+```sql
 select city,name,age from t where city='杭州' order by name limit 1000  ;
 ```
 
@@ -201,8 +201,8 @@ select city,name,age from t where city='杭州' order by name limit 1000  ;
 
 我们把这个算法，暂时称作随机算法 1。这里，我直接给你贴一下执行语句的序列:
 
-```text
-mysql> select max(id),min(id) into @M,@N from t ;
+```sql
+select max(id),min(id) into @M,@N from t ;
 set @X= floor((@M-@N+1)*rand() + @N);
 select * from t where id >= @X limit 1;
 ```
@@ -221,8 +221,8 @@ select * from t where id >= @X limit 1;
 
 我们把这个算法，称为随机算法 2。下面这段代码，就是上面流程的执行语句的序列。
 
-```text
-mysql> select count(*) into @C from t;
+```sql
+select count(*) into @C from t;
 set @Y = floor(@C * rand());
 set @sql = concat("select * from t limit ", @Y, ",1");
 prepare stmt from @sql;
@@ -248,12 +248,12 @@ MySQL 处理 limit Y,1 的做法就是按顺序一个一个地读出来，丢掉
 
 我们把这个算法，称作随机算法 3。下面这段代码，就是上面流程的执行语句的序列。
 
-```text
-mysql> select count(*) into @C from t;
+```sql
+select count(*) into @C from t;
 set @Y1 = floor(@C * rand());
 set @Y2 = floor(@C * rand());
 set @Y3 = floor(@C * rand());
-select * from t limit @Y1，1； //在应用代码里面取Y1、Y2、Y3值，拼出SQL后执行
+select * from t limit @Y1，1； -- 在应用代码里面取Y1、Y2、Y3值，拼出SQL后执行
 select * from t limit @Y2，1；
 select * from t limit @Y3，1；
 ```
@@ -290,13 +290,13 @@ select * from t limit @Y3，1；
 
 如果把这条 SQL 语句里 `limit 100` 改成 `limit 10000,100` 的话，处理方式其实也差不多，即：要把上面的两条语句改成写：
 
-```text
+```sql
 select * from t where city="杭州" order by name limit 10100;
 ```
 
 和
 
-```text
+```sql
  select * from t where city="苏州" order by name limit 10100。
 ```
 
@@ -306,13 +306,13 @@ select * from t where city="杭州" order by name limit 10100;
 
 所以，如果数据的单行比较大的话，可以考虑把这两条 SQL 语句改成下面这种写法：
 
-```text
+```sql
 select id,name from t where city="杭州" order by name limit 10100;
 ```
 
 和
 
-```text
+```sql
 select id,name from t where city="苏州" order by name limit 10100。
 ```
 

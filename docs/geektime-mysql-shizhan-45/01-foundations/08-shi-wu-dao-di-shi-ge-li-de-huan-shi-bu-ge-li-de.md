@@ -10,8 +10,8 @@ title: "08 事务到底是隔离的还是不隔离的？"
 
 我给你举一个例子吧。下面是一个只有两行的表的初始化语句。
 
-```text
-mysql> CREATE TABLE `t` (
+```sql
+CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `k` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -176,9 +176,9 @@ InnoDB 里面每个事务有一个唯一的事务 ID，叫作 transaction id。�
 
 所以，如果把事务 A 的查询语句 select \* from t where id=1 修改一下，加上 lock in share mode 或 for update，也都可以读到版本号是 101 的数据，返回的 k 的值是 3。下面这两个 select 语句，就是分别加了读锁（S 锁，共享锁）和写锁（X 锁，排他锁）。
 
-```text
-mysql> select k from t where id=1 lock in share mode;
-mysql> select k from t where id=1 for update;
+```sql
+select k from t where id=1 lock in share mode;
+select k from t where id=1 for update;
 ```
 
 再往前一步，假设事务 C 不是马上提交的，而是变成了下面的事务 C’，会怎么样呢？
@@ -240,8 +240,8 @@ InnoDB 的行数据有多个版本，每个数据版本有自己的 row trx\_id�
 
 又到思考题时间了。我用下面的表结构和初始化语句作为试验环境，事务隔离级别是可重复读。现在，我要把所有字段 c 和 id 值相等的行的 c 值清零，但是却发现了一个「诡异」的、改不掉的情况。请你构造出这种情况，并说明其原理。
 
-```text
-mysql> CREATE TABLE `t` (
+```sql
+CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `c` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)

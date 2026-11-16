@@ -128,8 +128,8 @@ InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkp
 
 其中，脏页比例是通过 Innodb\_buffer\_pool\_pages\_dirty/Innodb\_buffer\_pool\_pages\_total 得到的，具体的命令参考下面的代码：
 
-```text
-mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';
+```sql
+select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';
 select VARIABLE_VALUE into @b from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_total';
 select @a/@b;
 ```

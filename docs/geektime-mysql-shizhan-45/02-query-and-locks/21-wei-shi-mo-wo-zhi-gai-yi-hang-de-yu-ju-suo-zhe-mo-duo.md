@@ -25,7 +25,7 @@ title: "21 为什么我只改一行的语句，锁这么多？"
 
 我还是以上篇文章的表 t 为例，和你解释一下这些规则。表 t 的建表语句和初始化语句如下。
 
-```text
+```sql
 CREATE TABLE `t` (
   `id` int(11) NOT NULL,
   `c` int(11) DEFAULT NULL,
@@ -84,9 +84,9 @@ insert into t values(0,0,0),(5,5,5),
 
 举例之前，你可以先思考一下这个问题：对于我们这个表 t，下面这两条查询语句，加锁范围相同吗？
 
-```text
-mysql> select * from t where id=10 for update;
-mysql> select * from t where id>=10 and id<11 for update;
+```sql
+select * from t where id=10 for update;
+select * from t where id>=10 and id<11 for update;
 ```
 
 你可能会想，id 定义为 int 类型，这两个语句就是等价的吧？其实，它们并不完全等价。
@@ -144,8 +144,8 @@ session A 是一个范围查询，按照原则 1 的话，应该是索引 id 上
 
 接下来的例子，是为了更好地说明间隙这个概念。这里，我给表 t 插入一条新记录。
 
-```text
-mysql> insert into t values(30,10,30);
+```sql
+insert into t values(30,10,30);
 ```
 
 新插入的这一行 c=10，也就是说现在表里有两个 c=10 的行。那么，这时候索引 c 上的间隙是什么状态了呢？你要知道，由于非唯一索引上包含主键的值，所以是不可能存在相同的两行的。
@@ -260,7 +260,7 @@ mysql> insert into t values(30,10,30);
   回答：实际上在判断间隙的时候，varchar 和 int 是一样的，排好序以后，相邻两个值之间就有间隙。
 * 有几位同学提到说，上一篇文章自己验证的结果跟案例一不同，就是在 session A 执行完这两个语句：
 
-```text
+```sql
 begin;
 select * from t where d=5 for update; /*Q1*/
 ```

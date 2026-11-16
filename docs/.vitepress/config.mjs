@@ -30,8 +30,15 @@ export default defineConfig({
     siteTitle: 'CS Atlas · 学习图鉴',
     nav: [
       { text: '首页', link: '/' },
-      { text: '教材与专栏', link: '/library/' },
-      { text: '学习专题', link: '/topics/' }
+      {
+        text: 'MySQL',
+        activeMatch: '^/(mysql-how-it-works/|geektime-mysql-shizhan-45/|topics/database-data-structures(?:\\.html)?$)',
+        items: [
+          { text: 'MySQL 是怎样运行的', link: '/mysql-how-it-works/' },
+          { text: 'MySQL 实战 45 讲', link: '/geektime-mysql-shizhan-45/' },
+          { text: '数据库中的数据结构', link: '/topics/database-data-structures' }
+        ]
+      }
     ],
     sidebar: {
       '/topics/': [
@@ -48,7 +55,7 @@ export default defineConfig({
           text,
           collapsed: false,
           items: items.map(({ number, title, link }) => ({
-            text: `${String(number).padStart(2, '0')} · ${title.replace(/^第\d+章 /, '').replace(/^.*?-/, '')}`,
+            text: `${String(number).padStart(2, '0')} · ${title.replace(/^第\s*\d+\s*章\s+/, '').replace(/^.*?-/, '')}`,
             link
           }))
         }))

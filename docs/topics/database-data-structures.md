@@ -3,13 +3,31 @@ title: "数据库中的数据结构"
 description: 从记录、数据页到 B+ 树、哈希表与缓存链表，按顺序选读数据库底层数据结构。
 ---
 
-数据库如何把一条记录存下来，又如何在大量数据中快速找到它？这个专题把两套 MySQL 资料中的相关章节组织在一起，沿着「存储 → 查找 → 索引使用 → 缓存」的顺序阅读。
+数据库如何把一条记录存下来，又如何在大量数据中快速找到它？这个专题收录数据结构图解的原文链接，并把两套 MySQL 资料中的相关章节组织在一起，沿着「存储 → 查找 → 索引使用 → 缓存」的顺序阅读。
 
 **所需基础**：会写基本的 SQL，了解数组、链表和树的概念。无需先读完原书；遇到术语时，可以回到[教材目录](/library/)补读。
 
 **学习目标**：能画出从记录到数据页、再到 B+ 树的组织关系，并解释哈希表和链表在数据库中的具体用途。
 
-当前内容以 MySQL / InnoDB 为主，尚未覆盖跳表、LSM 树及其他存储引擎的数据结构。《MySQL 是怎样运行的》以 MySQL 5.7 为主要背景，涉及配置和实现细节时，请结合所用版本核对。
+当前教材选读以 MySQL / InnoDB 为主，尚未覆盖跳表、LSM 树及其他存储引擎的数据结构。《MySQL 是怎样运行的》以 MySQL 5.7 为主要背景，涉及配置和实现细节时，请结合所用版本核对。
+
+## 数据结构图解
+
+### 哈希表与哈希索引
+
+- [Hello 算法：哈希表](https://www.hello-algo.com/chapter_hashing/hash_map/)
+- [Hello 算法：哈希冲突](https://www.hello-algo.com/chapter_hashing/hash_collision/)
+
+### 二叉树与二叉搜索树
+
+- [Hello 算法：二叉树](https://www.hello-algo.com/chapter_tree/binary_tree/)
+- [Hello 算法：二叉搜索树](https://www.hello-algo.com/chapter_tree/binary_search_tree/)
+- [Hello 算法：AVL 树](https://www.hello-algo.com/chapter_tree/avl_tree/)
+
+### B 树（B- 树）与 B+ 树
+
+- [David Galles：B 树交互动画](https://www.cs.usfca.edu/~galles/visualization/BTree.html)
+- [David Galles：B+ 树交互动画](https://www.cs.usfca.edu/~galles/visualization/BPlusTree.html)
 
 ## 1. 建立索引模型的直觉
 

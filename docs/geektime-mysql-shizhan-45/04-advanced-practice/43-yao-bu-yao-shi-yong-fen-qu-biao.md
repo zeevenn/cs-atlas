@@ -67,7 +67,7 @@ insert into t values('2017-4-1',1),('2018-4-1',1);
 
 ![图 6 用 MyISAM 表锁验证](https://static001.geekbang.org/resource/image/94/76/941306d4a7193455dcf1cfebf7678876.png)
 
-在 session A 里面，我用 sleep(100)将这条语句的执行时间设置为 100 秒。由于 MyISAM 引擎只支持表锁，所以这条 update 语句会锁住整个表 t 上的读。
+在 session A 里面，我用 sleep(100) 将这条语句的执行时间设置为 100 秒。由于 MyISAM 引擎只支持表锁，所以这条 update 语句会锁住整个表 t 上的读。
 
 但我们看到的结果是，session B 的第一条查询语句是可以正常执行的，第二条语句才进入锁等待状态。
 
@@ -99,7 +99,7 @@ MyISAM 分区表使用的分区策略，我们称为 **通用分区策略** （g
 
 从 MySQL 5.7.9 开始，InnoDB 引擎引入了 **本地分区策略** （native partitioning）。这个策略是在 InnoDB 内部自己管理打开分区的行为。
 
-MySQL 从 5.7.17 开始，将 MyISAM 分区表标记为即将弃用(deprecated)，意思是「从这个版本开始不建议这么使用，请使用替代方案。在将来的版本中会废弃这个功能」。
+MySQL 从 5.7.17 开始，将 MyISAM 分区表标记为即将弃用 (deprecated)，意思是「从这个版本开始不建议这么使用，请使用替代方案。在将来的版本中会废弃这个功能」。
 
 从 MySQL 8.0 版本开始，就不允许创建 MyISAM 分区表了，只允许创建已经实现了本地分区策略的引擎。目前来看，只有 InnoDB 和 NDB 这两个引擎支持了本地分区策略。
 

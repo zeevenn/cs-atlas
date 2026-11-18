@@ -43,7 +43,7 @@ insert into t2(c,d) select c,d from t;
 
 ![图 1 并发 insert 场景](https://static001.geekbang.org/resource/image/33/86/33e513ee55d5700dc67f32bcdafb9386.png)
 
-实际的执行效果是，如果 session B 先执行，由于这个语句对表 t 主键索引加了(-∞,1]这个 next-key lock，会在语句执行完成后，才允许 session A 的 insert 语句执行。
+实际的执行效果是，如果 session B 先执行，由于这个语句对表 t 主键索引加了 (-∞,1] 这个 next-key lock，会在语句执行完成后，才允许 session A 的 insert 语句执行。
 
 但如果没有锁的话，就可能出现 session B 的 insert 语句先执行，但是后写入 binlog 的情况。于是，在 `binlog_format`=statement 的情况下，binlog 里面就记录了这样的语句序列：
 
@@ -66,7 +66,7 @@ insert into t2(c,d) select c,d from t;
 insert into t2(c,d)  (select c+1, d from t force index(c) order by c desc limit 1);
 ```
 
-这个语句的加锁范围，就是表 t 索引 c 上的(3,4]和(4,supremum]这两个 next-key lock，以及主键索引上 id=4 这一行。
+这个语句的加锁范围，就是表 t 索引 c 上的 (3,4] 和 (4,supremum] 这两个 next-key lock，以及主键索引上 id=4 这一行。
 
 它的执行流程也比较简单，从表 t 中按照索引 c 倒序，扫描第一行，拿到结果写入到表 t2 中。
 
@@ -141,7 +141,7 @@ drop table temp_t;
 
 这个例子也是在可重复读（repeatable read）隔离级别下执行的。可以看到，session B 要执行的 insert 语句进入了锁等待状态。
 
-也就是说，session A 执行的 insert 语句，发生唯一键冲突的时候，并不只是简单地报错返回，还在冲突的索引上加了锁。我们前面说过，一个 next-key lock 就是由它右边界的值定义的。这时候，session A 持有索引 c 上的(5,10]共享 next-key lock（读锁）。
+也就是说，session A 执行的 insert 语句，发生唯一键冲突的时候，并不只是简单地报错返回，还在冲突的索引上加了锁。我们前面说过，一个 next-key lock 就是由它右边界的值定义的。这时候，session A 持有索引 c 上的 (5,10] 共享 next-key lock（读锁）。
 
 至于为什么要加这个读锁，其实我也没有找到合理的解释。从作用上来看，这样做可以避免这一行被别的事务删掉。
 
@@ -175,13 +175,13 @@ drop table temp_t;
 insert into t values(11,10,10) on duplicate key update d=100;
 ```
 
-的话，就会给索引 c 上(5,10] 加一个排他的 next-key lock（写锁）。
+的话，就会给索引 c 上 (5,10] 加一个排他的 next-key lock（写锁）。
 
 **insert into … on duplicate key update 这个语义的逻辑是，插入一行数据，如果碰到唯一键约束，就执行后面的更新语句。**
 
 注意，如果有多个列违反了唯一性约束，就会按照索引的顺序，修改跟第一个索引冲突的行。
 
-现在表 t 里面已经有了(1,1,1)和(2,2,2)这两行，我们再来看看下面这个语句执行的效果：
+现在表 t 里面已经有了 (1,1,1) 和 (2,2,2) 这两行，我们再来看看下面这个语句执行的效果：
 
 ![图 9 两个唯一键同时冲突](https://static001.geekbang.org/resource/image/5f/02/5f384d6671c87a60e1ec7e490447d702.png)
 
@@ -197,7 +197,7 @@ insert … select 是很常见的在两个表之间拷贝数据的方法。你�
 
 而如果 insert 和 select 的对象是同一个表，则有可能会造成循环写入。这种情况下，我们需要引入用户临时表来做优化。
 
-insert 语句如果出现唯一键冲突，会在冲突的唯一值上加共享的 next-key lock(S 锁)。因此，碰到由于唯一键约束导致报错后，要尽快提交或回滚事务，避免加锁时间过长。
+insert 语句如果出现唯一键冲突，会在冲突的唯一值上加共享的 next-key lock（S 锁）。因此，碰到由于唯一键约束导致报错后，要尽快提交或回滚事务，避免加锁时间过长。
 
 最后，我给你留一个问题吧。
 

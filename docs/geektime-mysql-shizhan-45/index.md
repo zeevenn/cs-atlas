@@ -47,7 +47,7 @@ MySQL 使用和面试中遇到的问题，很多人会通过搜索别人的经�
 - [11 怎么给字符串字段加索引？](<02-query-and-locks/11-zen-mo-gei-zi-fu-chuan-zi-duan-jia-suo-yin.md>)
 - [12 为什么我的 MySQL 会「抖」一下？](<02-query-and-locks/12-wei-shi-mo-wo-de-mysql-hui-dou-yi-xia.md>)
 - [13 为什么表数据删掉一半，表文件大小不变？](<02-query-and-locks/13-wei-shi-mo-biao-shu-ju-shan-diao-yi-ban-biao-wen-jian-da-xiao-bu-bian.md>)
-- [14 count(\*)这么慢，我该怎么办？](<02-query-and-locks/14-count-zhe-mo-man-wo-gai-zen-mo-ban.md>)
+- [14 count(\*) 这么慢，我该怎么办？](<02-query-and-locks/14-count-zhe-mo-man-wo-gai-zen-mo-ban.md>)
 - [15 答疑文章（一）：日志和索引相关问题](<02-query-and-locks/15-da-yi-wen-zhang-yi-ri-zhi-he-suo-yin-xiang-guan-wen-ti.md>)
 - [16 `order by` 是怎么工作的？](<02-query-and-locks/16-order-by-shi-zen-mo-gong-zuo-de.md>)
 - [17 如何正确地显示随机消息？](<02-query-and-locks/17-ru-he-zheng-que-di-xian-shi-sui-ji-xiao-xi.md>)

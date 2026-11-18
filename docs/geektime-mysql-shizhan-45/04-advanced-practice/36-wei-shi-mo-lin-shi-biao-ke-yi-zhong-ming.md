@@ -65,7 +65,7 @@ select * from t1 join temp_t on (t1.b=temp_t.b);
 select v from ht where f=N;
 ```
 
-这时，我们就可以通过分表规则（比如，N%1024)来确认需要的数据被放在了哪个分表上。这种语句只需要访问一个分表，是分库分表方案最欢迎的语句形式了。
+这时，我们就可以通过分表规则（比如，N%1024）来确认需要的数据被放在了哪个分表上。这种语句只需要访问一个分表，是分库分表方案最欢迎的语句形式了。
 
 但是，如果这个表上还有另外一个索引 k，并且查询语句是这样的：
 
@@ -165,7 +165,7 @@ insert into t_normal select * from temp_t;/*Q4*/
 
 如果关于临时表的操作都不记录，那么在备库就只有 create table t\_normal 表和 insert into t\_normal select \* from temp\_t 这两个语句的 binlog 日志，备库在执行到 insert into t\_normal 的时候，就会报错表 temp\_t 不存在。
 
-你可能会说，如果把 binlog 设置为 row 格式就好了吧？因为 binlog 是 row 格式时，在记录 insert into t\_normal 的 binlog 时，记录的是这个操作的数据，即：write\_row event 里面记录的逻辑是「插入一行数据（1,1)」。
+你可能会说，如果把 binlog 设置为 row 格式就好了吧？因为 binlog 是 row 格式时，在记录 insert into t\_normal 的 binlog 时，记录的是这个操作的数据，即：write\_row event 里面记录的逻辑是「插入一行数据 (1,1)」。
 
 确实是这样。如果当前的 `binlog_format`=row，那么跟临时表有关的语句，就不会记录到 binlog 里。也就是说，只在 `binlog_format`=statment/mixed 的时候，binlog 中才会记录临时表的操作。
 

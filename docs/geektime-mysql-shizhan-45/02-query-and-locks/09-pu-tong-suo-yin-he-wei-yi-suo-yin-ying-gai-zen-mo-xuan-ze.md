@@ -38,7 +38,7 @@ select name from CUser where id_card = 'xxxxxxxyyyyyyzzzzz';
 
 假设，执行查询的语句是 select id from T where k=5。这个查询语句在索引树上查找的过程，先是通过 B+ 树从树根开始，按层搜索到叶子节点，也就是图中右下角的这个数据页，然后可以认为数据页内部通过二分法来定位记录。
 
-* 对于普通索引来说，查找到满足条件的第一个记录(5,500)后，需要查找下一个记录，直到碰到第一个不满足 k=5 条件的记录。
+* 对于普通索引来说，查找到满足条件的第一个记录 (5,500) 后，需要查找下一个记录，直到碰到第一个不满足 k=5 条件的记录。
 * 对于唯一索引来说，由于索引定义了唯一性，查找到第一个满足条件的记录后，就会停止继续检索。
 
 那么，这个不同带来的性能差距会有多少呢？答案是，微乎其微。
@@ -65,13 +65,13 @@ select name from CUser where id_card = 'xxxxxxxyyyyyyzzzzz';
 
 那么， **什么条件下可以使用 change buffer 呢？**
 
-对于唯一索引来说，所有的更新操作都要先判断这个操作是否违反唯一性约束。比如，要插入(4,400)这个记录，就要先判断现在表中是否已经存在 k=4 的记录，而这必须要将数据页读入内存才能判断。如果都已经读入到内存了，那直接更新内存会更快，就没必要使用 change buffer 了。
+对于唯一索引来说，所有的更新操作都要先判断这个操作是否违反唯一性约束。比如，要插入 (4,400) 这个记录，就要先判断现在表中是否已经存在 k=4 的记录，而这必须要将数据页读入内存才能判断。如果都已经读入到内存了，那直接更新内存会更快，就没必要使用 change buffer 了。
 
 因此，唯一索引的更新就不能使用 change buffer，实际上也只有普通索引可以使用。
 
 change buffer 用的是 buffer pool 里的内存，因此不能无限增大。change buffer 的大小，可以通过参数 `innodb_change_buffer_max_size` 来动态设置。这个参数设置为 50 的时候，表示 change buffer 的大小最多只能占用 buffer pool 的 50%。
 
-现在，你已经理解了 change buffer 的机制，那么我们再一起来看看 **如果要在这张表中插入一个新记录(4,400)的话，InnoDB 的处理流程是怎样的。**
+现在，你已经理解了 change buffer 的机制，那么我们再一起来看看 **如果要在这张表中插入一个新记录 (4,400) 的话，InnoDB 的处理流程是怎样的。**
 
 第一种情况是， **这个记录要更新的目标页在内存中**。这时，InnoDB 的处理流程如下：
 
@@ -125,7 +125,7 @@ change buffer 用的是 buffer pool 里的内存，因此不能无限增大。ch
 insert into t(id,k) values(id1,k1),(id2,k2);
 ```
 
-这里，我们假设当前 k 索引树的状态，查找到位置后，k1 所在的数据页在内存(InnoDB buffer pool)中，k2 所在的数据页不在内存中。如图 2 所示是带 change buffer 的更新状态图。
+这里，我们假设当前 k 索引树的状态，查找到位置后，k1 所在的数据页在内存 (InnoDB buffer pool) 中，k2 所在的数据页不在内存中。如图 2 所示是带 change buffer 的更新状态图。
 
 ![图 2 带 change buffer 的更新过程](https://static001.geekbang.org/resource/image/98/a3/980a2b786f0ea7adabef2e64fb4c4ca3.png)
 

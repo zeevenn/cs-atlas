@@ -99,7 +99,7 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 这条语句的执行流程如下所示。
 
-1. 打开文件/server\_tmp/t.csv，以制表符(\t)作为字段间的分隔符，以换行符（\n）作为记录之间的分隔符，进行数据读取；
+1. 打开文件/server\_tmp/t.csv，以制表符 (\t) 作为字段间的分隔符，以换行符（\n）作为记录之间的分隔符，进行数据读取；
 2. 启动事务。
 3. 判断每一行的字段数与表 db2.t 是否相同：
    * 若不相同，则直接报错，事务回滚；
@@ -148,7 +148,7 @@ mysqldump -h$host -P$port -u$user ---single-transaction  --set-gtid-purged=OFF d
 
 因为，一个 InnoDB 表，除了包含这两个物理文件外，还需要在数据字典中注册。直接拷贝这两个文件的话，因为数据字典中没有 db2.t 这个表，系统是不会识别和接受它们的。
 
-不过，在 MySQL 5.6 版本引入了 **可传输表空间** (transportable tablespace)的方法，可以通过导出+导入表空间的方式，实现物理拷贝表的功能。
+不过，在 MySQL 5.6 版本引入了 **可传输表空间** (transportable tablespace) 的方法，可以通过导出+导入表空间的方式，实现物理拷贝表的功能。
 
 假设我们现在的目标是在 db1 库下，复制一个跟表 t 相同的表 r，具体的执行步骤如下：
 

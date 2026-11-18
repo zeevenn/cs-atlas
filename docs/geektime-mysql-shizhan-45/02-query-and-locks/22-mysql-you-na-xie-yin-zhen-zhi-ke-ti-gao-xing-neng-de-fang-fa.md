@@ -104,7 +104,7 @@ insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) 
 call query_rewrite.flush_rewrite_rules();
 ```
 
-这里，call query\_rewrite.flush\_rewrite\_rules()这个存储过程，是让插入的新规则生效，也就是我们说的查询重写。你可以用图 4 中的方法来确认改写规则是否生效。
+这里，call query\_rewrite.flush\_rewrite\_rules() 这个存储过程，是让插入的新规则生效，也就是我们说的查询重写。你可以用图 4 中的方法来确认改写规则是否生效。
 
 ![图 4 查询重写效果](https://static001.geekbang.org/resource/image/47/8a/47a1002cbc4c05c74841591d20f7388a.png)
 
@@ -172,8 +172,8 @@ DBA 虽然可以通过语句重写来暂时处理问题，但是这本身是一�
 
 ![上期问题时间（配图 6）](<https://static001.geekbang.org/resource/image/3a/1e/3a7578e104612a188a2d574eaa3bd81e.png>)
 
-1. 由于是 order by c desc，第一个要定位的是索引 c 上最右边的c=20 的行，所以会加上间隙锁(20,25)和 next-key lock (15,20]。
-2. 在索引 c 上向左遍历，要扫描到 c=10 才停下来，所以 next-key lock 会加到(5,10]，这正是阻塞 session B 的 insert 语句的原因。
+1. 由于是 order by c desc，第一个要定位的是索引 c 上最右边的c=20 的行，所以会加上间隙锁 (20,25) 和 next-key lock (15,20]。
+2. 在索引 c 上向左遍历，要扫描到 c=10 才停下来，所以 next-key lock 会加到 (5,10]，这正是阻塞 session B 的 insert 语句的原因。
 3. 在扫描过程中，c=20、c=15、c=10 这三行都存在值，由于是 select \*，所以会在主键 id 上加三个行锁。
 
 因此，session A 的 select 语句锁的范围就是：

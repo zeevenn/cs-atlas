@@ -150,7 +150,7 @@ alter table t add FULLTEXT(field_name);
 如果说这两个逻辑之间的关系是什么的话，可以概括为：
 
 1. DDL 过程如果是 Online 的，就一定是 inplace 的；
-2. 反过来未必，也就是说 inplace 的 DDL，有可能不是 Online 的。截止到 MySQL 8.0，添加全文索引（FULLTEXT index）和空间索引(SPATIAL index)就属于这种情况。
+2. 反过来未必，也就是说 inplace 的 DDL，有可能不是 Online 的。截止到 MySQL 8.0，添加全文索引（FULLTEXT index）和空间索引 (SPATIAL index) 就属于这种情况。
 
 最后，我们再延伸一下。
 

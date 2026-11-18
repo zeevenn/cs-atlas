@@ -4,7 +4,7 @@ title: "35 join 语句怎么优化？"
 
 ![35 join 语句怎么优化？（配图）](<../images/image-17.png>)
 
-在上一篇文章中，我和你介绍了 join 语句的两种算法，分别是 Index Nested-Loop Join(NLJ)和 Block Nested-Loop Join(BNL)。
+在上一篇文章中，我和你介绍了 join 语句的两种算法，分别是 Index Nested-Loop Join (NLJ) 和 Block Nested-Loop Join (BNL)。
 
 我们发现在使用 NLJ 算法的时候，其实效果还是不错的，比通过应用层拆分成多个语句然后再拼接查询结果更方便，而且性能也不会差。
 
@@ -43,7 +43,7 @@ call idata();
 
 ## Multi-Range Read 优化
 
-在介绍 join 语句的优化方案之前，我需要先和你介绍一个知识点，即：Multi-Range Read 优化(MRR)。这个优化的主要目的是尽量使用顺序读盘。
+在介绍 join 语句的优化方案之前，我需要先和你介绍一个知识点，即：Multi-Range Read 优化 (MRR)。这个优化的主要目的是尽量使用顺序读盘。
 
 在[第 4 篇文章](https://time.geekbang.org/column/article/69236)中，我和你介绍 InnoDB 的索引结构时，提到了回表的概念。我们先来回顾一下这个概念。回表是指，InnoDB 在普通索引 a 上查到主键 id 的值后，再根据一个个主键 id 的值到主键索引上去查整行数据的过程。
 
@@ -87,7 +87,7 @@ select * from t1 where a>=1 and a<=100;
 
 ## Batched Key Access
 
-理解了 MRR 性能提升的原理，我们就能理解 MySQL 在 5.6 版本后开始引入的 Batched Key Acess(BKA)算法了。这个 BKA 算法，其实就是对 NLJ 算法的优化。
+理解了 MRR 性能提升的原理，我们就能理解 MySQL 在 5.6 版本后开始引入的 Batched Key Acess (BKA) 算法了。这个 BKA 算法，其实就是对 NLJ 算法的优化。
 
 我们再来看看上一篇文章中用到的 NLJ 算法的流程图：
 
@@ -121,7 +121,7 @@ set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 
 说完了 NLJ 算法的优化，我们再来看 BNL 算法的优化。
 
-我在上一篇文章末尾，给你留下的思考题是，使用 Block Nested-Loop Join(BNL)算法时，可能会对被驱动表做多次扫描。如果这个被驱动表是一个大的冷数据表，除了会导致 IO 压力大以外，还会对系统有什么影响呢？
+我在上一篇文章末尾，给你留下的思考题是，使用 Block Nested-Loop Join (BNL) 算法时，可能会对被驱动表做多次扫描。如果这个被驱动表是一个大的冷数据表，除了会导致 IO 压力大以外，还会对系统有什么影响呢？
 
 在[第 33 篇文章](https://time.geekbang.org/column/article/79407)中，我们说到 InnoDB 的 LRU 算法的时候提到，由于 InnoDB 对 Bufffer Pool 的 LRU 算法做了优化，即：第一次从磁盘读入内存的数据页，会先放在 old 区域。如果 1 秒之后这个数据页不再被访问了，就不会被移动到 LRU 链表头部，这样对 Buffer Pool 的命中率影响就不大。
 
@@ -166,7 +166,7 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 1. 把表 t1 的所有字段取出来，存入 join\_buffer 中。这个表只有 1000 行，`join_buffer_size` 默认值是 256k，可以完全存入。
 2. 扫描表 t2，取出每一行数据跟 join\_buffer 中的数据进行对比，
    * 如果不满足 t1.b=t2.b，则跳过；
-   * 如果满足 t1.b=t2.b, 再判断其他条件，也就是是否满足 t2.b 处于\[1,2000]的条件，如果是，就作为结果集的一部分返回，否则跳过。
+   * 如果满足 t1.b=t2.b, 再判断其他条件，也就是是否满足 t2.b 处于\[1,2000] 的条件，如果是，就作为结果集的一部分返回，否则跳过。
 
 我在上一篇文章中说过，对于表 t2 的每一行，判断 join 是否满足的时候，都需要遍历 join\_buffer 中的所有行。因此判断等值条件的次数是 1000\*100 万=10 亿次，这个判断的工作量很大。
 

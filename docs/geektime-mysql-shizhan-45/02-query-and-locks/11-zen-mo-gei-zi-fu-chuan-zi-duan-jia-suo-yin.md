@@ -42,7 +42,7 @@ alter table SUser add index index2(email(6));
 
 ![图 2 email(6) 索引结构](https://static001.geekbang.org/resource/image/13/42/134583875561de914991fc2e192cf842.jpg)
 
-从图中你可以看到，由于 email(6)这个索引结构中每个邮箱字段都只取前 6 个字节（即：zhangs），所以占用的空间会更小，这就是使用前缀索引的优势。
+从图中你可以看到，由于 email(6) 这个索引结构中每个邮箱字段都只取前 6 个字节（即：zhangs），所以占用的空间会更小，这就是使用前缀索引的优势。
 
 但，这同时带来的损失是，可能会增加额外的记录扫描次数。
 
@@ -60,7 +60,7 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 
 这个过程中，只需要回主键索引取一次数据，所以系统认为只扫描了一行。
 
-**如果使用的是 index2** （即 email(6)索引结构），执行顺序是这样的：
+**如果使用的是 index2** （即 email(6) 索引结构），执行顺序是这样的：
 
 1. 从 index2 索引树找到满足索引值是’zhangs’ 的记录，找到的第一个是 ID1；
 2. 到主键上查到主键值是 ID1 的行，判断出 email 的值不是’<zhangssxyz@xxx.com>’，这行记录丢弃；
@@ -71,7 +71,7 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 
 通过这个对比，你很容易就可以发现，使用前缀索引后，可能会导致查询语句读数据的次数变多。
 
-但是，对于这个查询语句来说，如果你定义的 index2 不是 email(6)而是 email(7），也就是说取 email 字段的前 7 个字节来构建索引的话，即满足前缀’zhangss’ 的记录只有一个，也能够直接查到 ID2，只扫描一行就结束了。
+但是，对于这个查询语句来说，如果你定义的 index2 不是 email(6) 而是 email(7)，也就是说取 email 字段的前 7 个字节来构建索引的话，即满足前缀’zhangss’ 的记录只有一个，也能够直接查到 ID2，只扫描一行就结束了。
 
 也就是说 **使用前缀索引，定义好长度，就可以做到既节省空间，又不用额外增加太多的查询成本。**
 
@@ -116,9 +116,9 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 
 相比，这个语句只要求返回 id 和 email 字段。
 
-所以，如果使用 index1（即 email 整个字符串的索引结构）的话，可以利用覆盖索引，从 index1 查到结果后直接就返回了，不需要回到 ID 索引再去查一次。而如果使用 index2（即 email(6)索引结构）的话，就不得不回到 ID 索引再去判断 email 字段的值。
+所以，如果使用 index1（即 email 整个字符串的索引结构）的话，可以利用覆盖索引，从 index1 查到结果后直接就返回了，不需要回到 ID 索引再去查一次。而如果使用 index2（即 email(6) 索引结构）的话，就不得不回到 ID 索引再去判断 email 字段的值。
 
-即使你将 index2 的定义修改为 email(18)的前缀索引，这时候虽然 index2 已经包含了所有的信息，但 InnoDB 还是要回到 id 索引再查一下，因为系统并不确定前缀索引的定义是否截断了完整信息。
+即使你将 index2 的定义修改为 email(18) 的前缀索引，这时候虽然 index2 已经包含了所有的信息，但 InnoDB 还是要回到 id 索引再查一下，因为系统并不确定前缀索引的定义是否截断了完整信息。
 
 也就是说，使用前缀索引就用不上覆盖索引对查询性能的优化了，这也是你在选择是否使用前缀索引时需要考虑的一个因素。
 
@@ -144,7 +144,7 @@ select id,name,email from SUser where email='zhangssxyz@xxx.com';
 select field_list from t where id_card = reverse('input_id_card_string');
 ```
 
-由于身份证号的最后 6 位没有地址码这样的重复逻辑，所以最后这 6 位很可能就提供了足够的区分度。当然了，实践中你不要忘记使用 count(distinct)方法去做个验证。
+由于身份证号的最后 6 位没有地址码这样的重复逻辑，所以最后这 6 位很可能就提供了足够的区分度。当然了，实践中你不要忘记使用 count(distinct) 方法去做个验证。
 
 **第二种方式是使用 hash 字段。** 你可以在表上再创建一个整数字段，来保存身份证的校验码，同时在这个字段上创建索引。
 
@@ -152,7 +152,7 @@ select field_list from t where id_card = reverse('input_id_card_string');
 alter table t add id_card_crc int unsigned, add index(id_card_crc);
 ```
 
-然后每次插入新记录的时候，都同时用 crc32()这个函数得到校验码填到这个新字段。由于校验码可能存在冲突，也就是说两个不同的身份证号通过 crc32()函数得到的结果可能是相同的，所以你的查询语句 where 部分要判断 id\_card 的值是否精确相同。
+然后每次插入新记录的时候，都同时用 crc32() 这个函数得到校验码填到这个新字段。由于校验码可能存在冲突，也就是说两个不同的身份证号通过 crc32() 函数得到的结果可能是相同的，所以你的查询语句 where 部分要判断 id\_card 的值是否精确相同。
 
 ```sql
 select field_list from t where id_card_crc=crc32('input_id_card_string') and id_card='input_id_card_string'
@@ -162,12 +162,12 @@ select field_list from t where id_card_crc=crc32('input_id_card_string') and id_
 
 接下来，我们再一起看看 **使用倒序存储和使用 hash 字段这两种方法的异同点。**
 
-首先，它们的相同点是，都不支持范围查询。倒序存储的字段上创建的索引是按照倒序字符串的方式排序的，已经没有办法利用索引方式查出身份证号码在\[ID\_X, ID\_Y]的所有市民了。同样地，hash 字段的方式也只能支持等值查询。
+首先，它们的相同点是，都不支持范围查询。倒序存储的字段上创建的索引是按照倒序字符串的方式排序的，已经没有办法利用索引方式查出身份证号码在\[ID\_X, ID\_Y] 的所有市民了。同样地，hash 字段的方式也只能支持等值查询。
 
 它们的区别，主要体现在以下三个方面：
 
 1. 从占用的额外空间来看，倒序存储方式在主键索引上，不会消耗额外的存储空间，而 hash 字段方法需要增加一个字段。当然，倒序存储方式使用 4 个字节的前缀长度应该是不够的，如果再长一点，这个消耗跟额外这个 hash 字段也差不多抵消了。
-2. 在 CPU 消耗方面，倒序方式每次写和读的时候，都需要额外调用一次 reverse 函数，而 hash 字段的方式需要额外调用一次 crc32()函数。如果只从这两个函数的计算复杂度来看的话，reverse 函数额外消耗的 CPU 资源会更小些。
+2. 在 CPU 消耗方面，倒序方式每次写和读的时候，都需要额外调用一次 reverse 函数，而 hash 字段的方式需要额外调用一次 crc32() 函数。如果只从这两个函数的计算复杂度来看的话，reverse 函数额外消耗的 CPU 资源会更小些。
 3. 从查询效率上看，使用 hash 字段方式的查询性能相对更稳定一些。因为 crc32 算出来的值虽然有冲突的概率，但是概率非常小，可以认为每次查询的平均扫描行数接近 1。而倒序存储方式毕竟还是用的前缀索引的方式，也就是说还是会增加扫描行数。
 
 ## 小结
@@ -195,7 +195,7 @@ select field_list from t where id_card_crc=crc32('input_id_card_string') and id_
 
 在上一篇文章最后，我给你留的问题是，为什么经过这个操作序列，explain 的结果就不对了？这里，我来为你分析一下原因。
 
-delete 语句删掉了所有的数据，然后再通过 call idata()插入了 10 万行数据，看上去是覆盖了原来的 10 万行。
+delete 语句删掉了所有的数据，然后再通过 call idata() 插入了 10 万行数据，看上去是覆盖了原来的 10 万行。
 
 但是，session A 开启了事务并没有提交，所以之前插入的 10 万行数据是不能删除的。这样，之前的数据每一行数据都有两个版本，旧版本是 delete 之前的数据，新版本是标记为 deleted 的数据。
 

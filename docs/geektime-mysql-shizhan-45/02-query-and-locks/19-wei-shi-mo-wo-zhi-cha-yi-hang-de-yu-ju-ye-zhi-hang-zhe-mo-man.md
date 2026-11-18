@@ -69,7 +69,7 @@ session A 通过 lock table 命令持有表 t 的 MDL 写锁，而 session B 的
 
 这类问题的处理方式，就是找到谁持有 MDL 写锁，然后把它 kill 掉。
 
-但是，由于在 show processlist 的结果里面，session A 的 Command 列是 `Sleep`，导致查找起来很不方便。不过有了 `performance_schema` 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 `performance_schema`=on，相比于设置为 off 会有 10%左右的性能损失)
+但是，由于在 show processlist 的结果里面，session A 的 Command 列是 `Sleep`，导致查找起来很不方便。不过有了 `performance_schema` 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 `performance_schema`=on，相比于设置为 off 会有 10%左右的性能损失）
 
 通过查询 sys.schema\_table\_lock\_waits 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
 
@@ -206,7 +206,7 @@ session B 执行完 100 万次 update 语句后，id=1 这一行处于什么状�
 
 ![图 16 id=1 的数据状态](https://static001.geekbang.org/resource/image/46/8c/46bb9f5e27854678bfcaeaf0c3b8a98c.png)
 
-session B 更新完 100 万次，生成了 100 万个回滚日志(undo log)。
+session B 更新完 100 万次，生成了 100 万个回滚日志 (undo log)。
 
 带 lock in share mode 的 SQL 语句，是当前读，因此会直接读到 1000001 这个结果，所以速度很快；而 select \* from t where id=1 这个语句，是一致性读，因此需要从 1000001 开始，依次执行 undo log，执行了 100 万次以后，才将 1 这个结果返回。
 

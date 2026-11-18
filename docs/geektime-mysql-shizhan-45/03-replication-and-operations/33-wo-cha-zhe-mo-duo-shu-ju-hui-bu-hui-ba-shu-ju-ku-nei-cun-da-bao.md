@@ -61,7 +61,7 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 实际上，一个查询语句的状态变化是这样的（注意：这里，我略去了其他无关的状态）：
 
 * MySQL 查询语句进入执行阶段后，首先把状态设置成 `Sending data`；
-* 然后，发送执行结果的列相关的信息（meta data) 给客户端；
+* 然后，发送执行结果的列相关的信息（meta data） 给客户端；
 * 再继续执行语句的流程；
 * 执行完成后，把状态设置成空字符串。
 
@@ -83,7 +83,7 @@ mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
 
 在[第 2](https://time.geekbang.org/column/article/68633)和[第 15 篇](https://time.geekbang.org/column/article/73161)文章中，我介绍 WAL 机制的时候，和你分析了 InnoDB 内存的一个作用，是保存更新的结果，再配合 redo log，就避免了随机写盘。
 
-内存的数据页是在 Buffer Pool (BP)中管理的，在 WAL 里 Buffer Pool 起到了加速更新的作用。而实际上，Buffer Pool 还有一个更重要的作用，就是加速查询。
+内存的数据页是在 Buffer Pool (BP) 中管理的，在 WAL 里 Buffer Pool 起到了加速更新的作用。而实际上，Buffer Pool 还有一个更重要的作用，就是加速查询。
 
 在第 2 篇文章的评论区有同学问道，由于有 WAL 机制，当事务提交的时候，磁盘上的数据页是旧的，那如果这时候马上有一个查询要来读这个数据页，是不是要马上把 redo log 应用到数据页呢？
 
@@ -105,7 +105,7 @@ InnoDB Buffer Pool 的大小是由参数 `innodb_buffer_pool_size` 确定的，�
 
 所以，`innodb_buffer_pool_size` 小于磁盘的数据量是很常见的。如果一个 Buffer Pool 满了，而又要从磁盘读入一个数据页，那肯定是要淘汰一个旧数据页的。
 
-InnoDB 内存管理用的是最近最少使用 (Least Recently Used, LRU)算法，这个算法的核心就是淘汰最久未使用的数据。
+InnoDB 内存管理用的是最近最少使用 (Least Recently Used, LRU) 算法，这个算法的核心就是淘汰最久未使用的数据。
 
 下图是一个 LRU 算法的基本模型。
 

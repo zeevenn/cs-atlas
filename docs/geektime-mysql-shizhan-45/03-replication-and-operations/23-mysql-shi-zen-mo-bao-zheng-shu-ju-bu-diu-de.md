@@ -31,7 +31,7 @@ write 和 fsync 的时机，是由参数 `sync_binlog` 控制的：
 
 1. `sync_binlog`=0 的时候，表示每次提交事务都只 write，不 fsync；
 2. `sync_binlog`=1 的时候，表示每次提交事务都会执行 fsync；
-3. `sync_binlog`=N(N>1)的时候，表示每次提交事务都 write，但累积 N 个事务后才 fsync。
+3. `sync_binlog`=N(N>1) 的时候，表示每次提交事务都 write，但累积 N 个事务后才 fsync。
 
 因此，在出现 IO 瓶颈的场景里，将 `sync_binlog` 设置成一个比较大的值，可以提升性能。在实际的业务场景中，考虑到丢失日志量的可控性，一般不建议将这个参数设成 0，比较常见的是将其设置为 100\~1000 中的某个数值。
 
@@ -60,7 +60,7 @@ write 和 fsync 的时机，是由参数 `sync_binlog` 控制的：
 这三种状态分别是：
 
 1. 存在 redo log buffer 中，物理上是在 MySQL 进程内存中，就是图中的红色部分；
-2. 写到磁盘(write)，但是没有持久化（fsync)，物理上是在文件系统的 page cache 里面，也就是图中的黄色部分；
+2. 写到磁盘 (write)，但是没有持久化（fsync），物理上是在文件系统的 page cache 里面，也就是图中的黄色部分；
 3. 持久化到磁盘，对应的是 hard disk，也就是图中的绿色部分。
 
 日志写到 redo log buffer 是很快的，wirte 到 page cache 也差不多，但是持久化到磁盘的速度就慢多了。
@@ -96,7 +96,7 @@ InnoDB 有一个后台线程，每隔 1 秒，就会把 redo log buffer 中的�
 
 LSN 也会写到 InnoDB 的数据页中，来确保数据页不会被多次执行重复的 redo log。关于 LSN 和 redo log、checkpoint 的关系，我会在后面的文章中详细展开。
 
-如图 3 所示，是三个并发事务(trx1, trx2, trx3)在 prepare 阶段，都写完 redo log buffer，持久化到磁盘的过程，对应的 LSN 分别是 50、120 和 160。
+如图 3 所示，是三个并发事务 (trx1, trx2, trx3) 在 prepare 阶段，都写完 redo log buffer，持久化到磁盘的过程，对应的 LSN 分别是 50、120 和 160。
 
 ![图 3 redo log 组提交](https://static001.geekbang.org/resource/image/93/cc/933fdc052c6339de2aa3bf3f65b188cc.png)
 

@@ -30,7 +30,7 @@ title: "24 MySQL 是怎么保证主备一致的？"
 
 你可能会问，我把备库设置成只读了，还怎么跟主库保持同步更新呢？
 
-这个问题，你不用担心。因为 readonly 设置对超级(super)权限用户是无效的，而用于同步更新的线程，就拥有超级权限。
+这个问题，你不用担心。因为 readonly 设置对超级 (super) 权限用户是无效的，而用于同步更新的线程，就拥有超级权限。
 
 接下来，我们再看看 **节点 A 到 B 这条线的内部流程是什么样的**。图 2 中画出的就是一个 update 语句在节点 A 执行，然后同步到节点 B 的完整流程图。
 
@@ -184,7 +184,7 @@ insert into t values(10,10, now());
 
 ![图 8 TIMESTAMP 命令](https://static001.geekbang.org/resource/image/1a/41/1ad3a4c4b9a71955edba5195757dd041.png)
 
-从图中的结果可以看到，原来 binlog 在记录 event 的时候，多记了一条命令：SET TIMESTAMP=1546103491。它用 SET TIMESTAMP 命令约定了接下来的 now()函数的返回时间。
+从图中的结果可以看到，原来 binlog 在记录 event 的时候，多记了一条命令：SET TIMESTAMP=1546103491。它用 SET TIMESTAMP 命令约定了接下来的 now() 函数的返回时间。
 
 因此，不论这个 binlog 是 1 分钟之后被备库执行，还是 3 天后用来恢复这个库的备份，这个 insert 语句插入的行，值都是固定的。也就是说，通过这条 SET TIMESTAMP 命令，MySQL 就确保了主备数据的一致性。
 

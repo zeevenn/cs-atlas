@@ -42,7 +42,7 @@ Extra 这个字段中的 `Using filesort` 表示的就是需要排序，MySQL �
 
 ![图 2 city 字段的索引示意图](https://static001.geekbang.org/resource/image/ff/1e/ffb5e4153d6e02977cb2d164e6b6bc1e.jpg)
 
-从图中可以看到，满足 city='杭州’条件的行，是从 ID\_X 到 ID\_(X+N)的这些记录。
+从图中可以看到，满足 city='杭州’条件的行，是从 ID\_X 到 ID\_(X+N) 的这些记录。
 
 通常情况下，这个语句执行流程如下所示 ：
 
@@ -195,18 +195,18 @@ alter table t add index city_user(city, name);
 
 这样整个查询过程的流程就变成了：
 
-1. 从索引(city,name)找到第一个满足 city='杭州’条件的主键 id；
+1. 从索引 (city,name) 找到第一个满足 city='杭州’条件的主键 id；
 2. 到主键 id 索引取出整行，取 name、city、age 三个字段的值，作为结果集的一部分直接返回；
-3. 从索引(city,name)取下一个记录主键 id；
+3. 从索引 (city,name) 取下一个记录主键 id；
 4. 重复步骤 2、3，直到查到第 1000 条记录，或者是不满足 city='杭州’条件时循环结束。
 
-![图 8 引入(city,name)联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/3f/92/3f590c3a14f9236f2d8e1e2cb9686692.jpg)
+![图 8 引入 (city,name) 联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/3f/92/3f590c3a14f9236f2d8e1e2cb9686692.jpg)
 
 可以看到，这个查询过程不需要临时表，也不需要排序。接下来，我们用 explain 的结果来印证一下。
 
-![图 9 引入(city,name)联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/fc/8a/fc53de303811ba3c46d344595743358a.png)
+![图 9 引入 (city,name) 联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/fc/8a/fc53de303811ba3c46d344595743358a.png)
 
-从图中可以看到，Extra 字段中没有 Using filesort 了，也就是不需要排序了。而且由于(city,name)这个联合索引本身有序，所以这个查询也不用把 4000 行全都读一遍，只要找到满足条件的前 1000 条记录就可以退出了。也就是说，在我们这个例子里，只需要扫描 1000 次。
+从图中可以看到，Extra 字段中没有 Using filesort 了，也就是不需要排序了。而且由于 (city,name) 这个联合索引本身有序，所以这个查询也不用把 4000 行全都读一遍，只要找到满足条件的前 1000 条记录就可以退出了。也就是说，在我们这个例子里，只需要扫描 1000 次。
 
 既然说到这里了，我们再往前讨论， **这个语句的执行流程有没有可能进一步简化呢？** 不知道你还记不记得，我在第 5 篇文章[《 深入浅出索引（下）》](https://time.geekbang.org/column/article/69636)中，和你介绍的覆盖索引。
 
@@ -222,15 +222,15 @@ alter table t add index city_user_age(city, name, age);
 
 这时，对于 city 字段的值相同的行来说，还是按照 name 字段的值递增排序的，此时的查询语句也就不再需要排序了。这样整个查询语句的执行流程就变成了：
 
-1. 从索引(city,name,age)找到第一个满足 city='杭州’条件的记录，取出其中的 city、name 和 age 这三个字段的值，作为结果集的一部分直接返回；
-2. 从索引(city,name,age)取下一个记录，同样取出这三个字段的值，作为结果集的一部分直接返回；
+1. 从索引 (city,name,age) 找到第一个满足 city='杭州’条件的记录，取出其中的 city、name 和 age 这三个字段的值，作为结果集的一部分直接返回；
+2. 从索引 (city,name,age) 取下一个记录，同样取出这三个字段的值，作为结果集的一部分直接返回；
 3. 重复执行步骤 2，直到查到第 1000 条记录，或者是不满足 city='杭州’条件时循环结束。
 
-![图 10 引入(city,name,age)联合索引后，查询语句的执行流程](https://static001.geekbang.org/resource/image/df/d6/df4b8e445a59c53df1f2e0f115f02cd6.jpg)
+![图 10 引入 (city,name,age) 联合索引后，查询语句的执行流程](https://static001.geekbang.org/resource/image/df/d6/df4b8e445a59c53df1f2e0f115f02cd6.jpg)
 
 然后，我们再来看看 explain 的结果。
 
-![图 11 引入(city,name,age)联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/9e/23/9e40b7b8f0e3f81126a9171cc22e3423.png)
+![图 11 引入 (city,name,age) 联合索引后，查询语句的执行计划](https://static001.geekbang.org/resource/image/9e/23/9e40b7b8f0e3f81126a9171cc22e3423.png)
 
 可以看到，Extra 字段里面多了 `Using index`，表示的就是使用了覆盖索引，性能上会快很多。
 
@@ -244,7 +244,7 @@ alter table t add index city_user_age(city, name, age);
 
 最后，我给你留下一个思考题吧。
 
-假设你的表里面已经有了 city\_name(city, name)这个联合索引，然后你要查杭州和苏州两个城市中所有的市民的姓名，并且按名字排序，显示前 100 条记录。如果 SQL 查询语句是这么写的 ：
+假设你的表里面已经有了 city\_name(city, name) 这个联合索引，然后你要查杭州和苏州两个城市中所有的市民的姓名，并且按名字排序，显示前 100 条记录。如果 SQL 查询语句是这么写的 ：
 
 ```sql
 select * from t where city in ('杭州',"苏州") order by name limit 100;
@@ -266,7 +266,7 @@ select * from t where city in ('杭州',"苏州") order by name limit 100;
 
 第一个选项是，MySQL 读出数据，发现值与原来相同，不更新，直接返回，执行结束。这里我们可以用一个锁实验来确认。
 
-假设，当前表 t 里的值是(1,2)。
+假设，当前表 t 里的值是 (1,2)。
 
 ![图 12 锁验证方式](https://static001.geekbang.org/resource/image/6d/90/6d9d8837560d01b57d252c470157ea90.png)
 
@@ -274,19 +274,19 @@ session B 的 update 语句被 blocked 了，加锁这个动作是 InnoDB 才能
 
 第二个选项是，MySQL 调用了 InnoDB 引擎提供的接口，但是引擎发现值与原来相同，不更新，直接返回。有没有这种可能呢？这里我用一个可见性实验来确认。
 
-假设当前表里的值是(1,2)。
+假设当前表里的值是 (1,2)。
 
 ![图 13 可见性验证方式](https://static001.geekbang.org/resource/image/44/96/441682b64a3f5dd50f35b12ca4b87c96.png)
 
-session A 的第二个 select 语句是一致性读（快照读)，它是不能看见 session B 的更新的。
+session A 的第二个 select 语句是一致性读（快照读），它是不能看见 session B 的更新的。
 
-现在它返回的是(1,3)，表示它看见了某个新的版本，这个版本只能是 session A 自己的 update 语句做更新的时候生成。（如果你对这个逻辑有疑惑的话，可以回顾下第 8 篇文章[《事务到底是隔离的还是不隔离的？》](https://time.geekbang.org/column/article/70562)中的相关内容）
+现在它返回的是 (1,3)，表示它看见了某个新的版本，这个版本只能是 session A 自己的 update 语句做更新的时候生成。（如果你对这个逻辑有疑惑的话，可以回顾下第 8 篇文章[《事务到底是隔离的还是不隔离的？》](https://time.geekbang.org/column/article/70562)中的相关内容）
 
-所以，我们上期思考题的答案应该是选项 3，即：InnoDB 认真执行了把这个值修改成(1,2)这个操作，该加锁的加锁，该更新的更新。
+所以，我们上期思考题的答案应该是选项 3，即：InnoDB 认真执行了把这个值修改成 (1,2) 这个操作，该加锁的加锁，该更新的更新。
 
 然后你会说，MySQL 怎么这么笨，就不会更新前判断一下值是不是相同吗？如果判断一下，不就不用浪费 InnoDB 操作，多去更新一次了？
 
-其实 MySQL 是确认了的。只是在这个语句里面，MySQL 认为读出来的值，只有一个确定的 (id=1), 而要写的是(a=3)，只从这两个信息是看不出来不需要修改的。
+其实 MySQL 是确认了的。只是在这个语句里面，MySQL 认为读出来的值，只有一个确定的 (id=1), 而要写的是 (a=3)，只从这两个信息是看不出来不需要修改的。
 
 作为验证，你可以看一下下面这个例子。
 

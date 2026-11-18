@@ -23,7 +23,7 @@ CREATE TABLE `t` (
 ) ENGINE=InnoDB；
 ```
 
-然后，我们往表 t 中插入 10 万行记录，取值按整数递增，即：(1,1,1)，(2,2,2)，(3,3,3) 直到(100000,100000,100000)。
+然后，我们往表 t 中插入 10 万行记录，取值按整数递增，即：(1,1,1)，(2,2,2)，(3,3,3) 直到 (100000,100000,100000)。
 
 我是用存储过程来插入数据的，这里我贴出来方便你复现：
 
@@ -64,7 +64,7 @@ select * from t where a between 10000 and 20000;
 
 这时候，session B 的查询语句 select \* from t where a between 10000 and 20000 就不会再选择索引 a 了。我们可以通过慢查询日志（slow log）来查看一下具体的执行情况。
 
-为了说明优化器选择的结果是否正确，我增加了一个对照，即：使用 force index(a)来让优化器强制使用索引 a（这部分内容，我还会在这篇文章的后半部分中提到）。
+为了说明优化器选择的结果是否正确，我增加了一个对照，即：使用 force index(a) 来让优化器强制使用索引 a（这部分内容，我还会在这篇文章的后半部分中提到）。
 
 下面的三条 SQL 语句，就是这个实验过程。
 
@@ -76,7 +76,7 @@ select * from t force index(a) where a between 10000 and 20000;/*Q2*/
 
 * 第一句，是将慢查询日志的阈值设置为 0，表示这个线程接下来的语句都会被记录入慢查询日志中；
 * 第二句，Q1 是 session B 原来的查询；
-* 第三句，Q2 是加了 force index(a)来和 session B 原来的查询语句执行情况对比。
+* 第三句，Q2 是加了 force index(a) 来和 session B 原来的查询语句执行情况对比。
 
 如图 3 所示是这三条 SQL 语句执行完成后的慢查询日志。
 
@@ -202,7 +202,7 @@ explain select * from t where (a between 1 and 1000) and (b between 50000 and 10
 
 ![图 9 使用不同索引的语句执行耗时](https://static001.geekbang.org/resource/image/95/54/9582401a6bed6cb8fd803c9555750b54.png)
 
-可以看到，原本语句需要执行 2.23 秒，而当你使用 force index(a)的时候，只用了 0.05 秒，比优化器的选择快了 40 多倍。
+可以看到，原本语句需要执行 2.23 秒，而当你使用 force index(a) 的时候，只用了 0.05 秒，比优化器的选择快了 40 多倍。
 
 也就是说，优化器没有选择正确的索引，force index 起到了矫正的作用。
 
@@ -273,7 +273,7 @@ select * from  (select * from t where (a between 1 and 1000)  and (b between 500
 merge 的执行流程是这样的：
 
 1. 从磁盘读入数据页到内存（老版本的数据页）；
-2. 从 change buffer 里找出这个数据页的 change buffer 记录(可能有多个），依次应用，得到新版数据页；
+2. 从 change buffer 里找出这个数据页的 change buffer 记录（可能有多个），依次应用，得到新版数据页；
 3. 写 redo log。这个 redo log 包含了数据的变更和 change buffer 的变更。
 
 到这里 merge 过程就结束了。这时候，数据页和内存中 change buffer 对应的磁盘位置都还没有修改，属于脏页，之后各自刷回自己的物理数据，就是另外一个过程了。

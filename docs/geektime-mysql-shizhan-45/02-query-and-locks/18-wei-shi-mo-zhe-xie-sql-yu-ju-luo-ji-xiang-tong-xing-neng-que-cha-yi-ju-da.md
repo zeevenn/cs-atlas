@@ -36,7 +36,7 @@ select count(*) from tradelog where month(t_modified)=7;
 
 现在你已经学过了 InnoDB 的索引结构了，可以再追问一句为什么？为什么条件是 where t\_modified='2018-7-1’的时候可以用上索引，而改成 where month(t\_modified)=7 的时候就不行了？
 
-下面是这个 t\_modified 索引的示意图。方框上面的数字就是 month()函数对应的值。
+下面是这个 t\_modified 索引的示意图。方框上面的数字就是 month() 函数对应的值。
 
 ![图 1 t\_modified 索引示意图](https://static001.geekbang.org/resource/image/3e/86/3e30d9a5e67f711f5af2e2599e800286.png)
 
@@ -44,7 +44,7 @@ select count(*) from tradelog where month(t_modified)=7;
 
 实际上，B+ 树提供的这个快速定位能力，来源于同一层兄弟节点的有序性。
 
-但是，如果计算 month()函数的话，你会看到传入 7 的时候，在树的第一层就不知道该怎么办了。
+但是，如果计算 month() 函数的话，你会看到传入 7 的时候，在树的第一层就不知道该怎么办了。
 
 也就是说， **对索引字段做函数操作，可能会破坏索引值的有序性，因此优化器就决定放弃走树搜索功能。**
 
@@ -58,7 +58,7 @@ select count(*) from tradelog where month(t_modified)=7;
 
 key="t\_modified"表示的是，使用了 t\_modified 这个索引；我在测试表数据中插入了 10 万行数据，rows=100335，说明这条语句扫描了整个索引的所有值；Extra 字段的 Using index，表示的是使用了覆盖索引。
 
-也就是说，由于在 t\_modified 字段加了 month()函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 t\_modified 索引的快速定位能力了。
+也就是说，由于在 t\_modified 字段加了 month() 函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 t\_modified 索引的快速定位能力了。
 
 ```sql
 select count(*) from tradelog where
@@ -69,7 +69,7 @@ select count(*) from tradelog where
 
 当然，如果你的系统上线时间更早，或者后面又插入了之后年份的数据的话，你就需要再把其他年份补齐。
 
-到这里我给你说明了，由于加了 month()函数操作，MySQL 无法再使用索引快速定位功能，而只能使用全索引扫描。
+到这里我给你说明了，由于加了 month() 函数操作，MySQL 无法再使用索引快速定位功能，而只能使用全索引扫描。
 
 不过优化器在个问题上确实有「偷懒」行为，即使是对于不改变有序性的函数，也不会考虑使用索引。比如，对于 select \* from tradelog where id + 1 = 10000 这个 SQL 语句，这个加 1 操作并不会改变有序性，但是 MySQL 优化器还是不能用 id 索引快速定位到 9999 这一行。所以，需要你在写 SQL 语句的时候，手动改写成 where id = 10000 -1 才可以。
 
@@ -209,7 +209,7 @@ select * from trade_detail where tradeid=$L2.tradeid.value;
 select * from trade_detail  where CONVERT(traideid USING utf8mb4)=$L2.tradeid.value;
 ```
 
-CONVERT()函数，在这里的意思是把输入的字符串转成 utf8mb4 字符集。
+CONVERT() 函数，在这里的意思是把输入的字符串转成 utf8mb4 字符集。
 
 这就再次触发了我们上面说到的原则：对索引字段做函数操作，优化器会放弃走树搜索功能。
 
@@ -223,7 +223,7 @@ select l.operator from tradelog l , trade_detail d where d.tradeid=l.tradeid and
 
 ![图 6 explain 结果](https://static001.geekbang.org/resource/image/92/11/92cb498ceb3557e41700fae53ce9bd11.png)
 
-这个语句里 trade\_detail 表成了驱动表，但是 explain 结果的第二行显示，这次的查询操作用上了被驱动表 tradelog 里的索引(tradeid)，扫描行数是 1。
+这个语句里 trade\_detail 表成了驱动表，但是 explain 结果的第二行显示，这次的查询操作用上了被驱动表 tradelog 里的索引 (tradeid)，扫描行数是 1。
 
 这也是两个 tradeid 字段的 join 操作，为什么这次能用上被驱动表的 tradeid 索引呢？我们来分析一下。
 

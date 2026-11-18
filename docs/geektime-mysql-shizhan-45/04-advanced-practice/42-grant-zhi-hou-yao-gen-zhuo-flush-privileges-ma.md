@@ -16,7 +16,7 @@ title: "42 grant 之后要跟着 flush privileges 吗？"
 create user 'ua'@'%' identified by 'pa';
 ```
 
-这条语句的逻辑是创建一个用户’ua’@’%’，密码是 pa。注意，在 MySQL 里面，用户名(user)+地址(host)才表示一个用户，因此 ua@ip1 和 ua@ip2 代表的是两个不同的用户。
+这条语句的逻辑是创建一个用户’ua’@’%’，密码是 pa。注意，在 MySQL 里面，用户名 (user)+地址 (host) 才表示一个用户，因此 ua@ip1 和 ua@ip2 代表的是两个不同的用户。
 
 这条命令做了两个动作：
 

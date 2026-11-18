@@ -2,7 +2,7 @@
 title: "05 深入浅出索引（下）"
 ---
 
-![05 深入浅出索引（下）（配图）](<../images/image-25.png>)
+![05 深入浅出索引（下）（配图）](../images/image-25.png)
 
 在上一篇文章中，我和你介绍了 InnoDB 索引的数据结构模型，今天我们再继续聊聊跟 MySQL 索引有关的概念。
 
@@ -14,13 +14,13 @@ title: "05 深入浅出索引（下）"
 
 ```sql
 create table T (
-ID int primary key,
-k int NOT NULL DEFAULT 0,
-s varchar(16) NOT NULL DEFAULT '',
-index k(k))
-engine=InnoDB;
+  ID int primary key,
+  k int NOT NULL DEFAULT 0,
+  s varchar(16) NOT NULL DEFAULT '',
+  index k(k)
+) engine=InnoDB;
 
-insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,'ff'),(700,7,'gg');
+insert into T values(100,1,'aa'), (200,2,'bb'), (300,3,'cc'), (500,5,'ee'), (600,6,'ff'), (700,7,'gg');
 ```
 
 ![图 1 InnoDB 的索引组织结构](https://static001.geekbang.org/resource/image/dc/8d/dcda101051f28502bd5c4402b292e38d.png)

@@ -55,7 +55,6 @@ export default defineConfig({
       ],
       '/geektime-mysql-shizhan-45/': geektimeGroups,
       '/mysql-how-it-works/': [
-        { text: '阅读目录', link: '/mysql-how-it-works/' },
         ...groups.map(({ text, items }) => ({
           text,
           collapsed: false,

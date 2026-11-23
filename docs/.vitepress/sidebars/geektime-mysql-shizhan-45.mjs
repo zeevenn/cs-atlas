@@ -2,7 +2,6 @@ import { readdirSync } from 'node:fs'
 import { readTitle } from './read-title.mjs'
 
 export const geektimeGroups = [
-  { text: '课程介绍与目录', link: '/geektime-mysql-shizhan-45/' },
   ...[
     { text: '基础架构、索引与事务', directory: '01-foundations' },
     { text: '索引优化、查询与锁', directory: '02-query-and-locks' },

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="240" viewBox="0 0 760 240" role="img" aria-labelledby="title desc">
+  <title id="title">内连接、左连接、右连接的保留范围</title>
+  <desc id="desc">A 为左表，B 为右表，交叠处表示满足连接条件的匹配。内连接只保留匹配组合，左连接保留全部左表行，右连接保留全部右表行；外连接没有匹配时将另一侧列补为 NULL。本图只说明保留范围，不表示结果行数或去重。</desc>
+  <rect width="760" height="240" fill="#fff" />
+  <g font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" fill="#18333b" transform="translate(0 -88)">
+    <rect x="16" y="104" width="232" height="208" rx="12" fill="#f4f8f8" />
+    <text x="132" y="143" font-size="22" font-weight="600" text-anchor="middle">INNER JOIN</text>
+    <circle cx="100" cy="222" r="64" fill="#fff" />
+    <circle cx="164" cy="222" r="64" fill="#fff" />
+    <clipPath id="intersection">
+      <circle cx="164" cy="222" r="64" />
+    </clipPath>
+    <circle cx="100" cy="222" r="64" fill="#b9dfe2" clip-path="url(#intersection)" />
+    <circle cx="100" cy="222" r="64" fill="none" stroke="#216a78" stroke-width="2.5" />
+    <circle cx="164" cy="222" r="64" fill="none" stroke="#216a78" stroke-width="2.5" />
+    <text x="65" y="231" font-size="24" font-weight="600" text-anchor="middle">A</text>
+    <text x="199" y="231" font-size="24" font-weight="600" text-anchor="middle">B</text>
+    <rect x="264" y="104" width="232" height="208" rx="12" fill="#f4f8f8" />
+    <text x="380" y="143" font-size="22" font-weight="600" text-anchor="middle">LEFT JOIN</text>
+    <circle cx="348" cy="222" r="64" fill="#fff" />
+    <circle cx="412" cy="222" r="64" fill="#fff" />
+    <circle cx="348" cy="222" r="64" fill="#b9dfe2" />
+    <circle cx="348" cy="222" r="64" fill="none" stroke="#216a78" stroke-width="2.5" />
+    <circle cx="412" cy="222" r="64" fill="none" stroke="#216a78" stroke-width="2.5" />
+    <text x="313" y="231" font-size="24" font-weight="600" text-anchor="middle">A</text>
+    <text x="447" y="231" font-size="24" font-weight="600" text-anchor="middle">B</text>
+    <rect x="512" y="104" width="232" height="208" rx="12" fill="#f4f8f8" />
+    <text x="628" y="143" font-size="22" font-weight="600" text-anchor="middle">RIGHT JOIN</text>
+    <circle cx="596" cy="222" r="64" fill="#fff" />
+    <circle cx="660" cy="222" r="64" fill="#fff" />
+    <circle cx="660" cy="222" r="64" fill="#b9dfe2" />
+    <circle cx="596" cy="222" r="64" fill="none" stroke="#216a78" stroke-width="2.5" />
+    <circle cx="660" cy="222" r="64" fill="none" stroke="#216a78" stroke-width="2.5" />
+    <text x="561" y="231" font-size="24" font-weight="600" text-anchor="middle">A</text>
+    <text x="695" y="231" font-size="24" font-weight="600" text-anchor="middle">B</text>
+  </g>
+</svg>

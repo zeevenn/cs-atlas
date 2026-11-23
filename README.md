@@ -13,10 +13,11 @@
 
 ### 已有内容
 
-| 类型 | 内容 | 范围 |
-| --- | --- | --- |
-| 完整教材 | [MySQL 是怎样运行的](docs/mysql-how-it-works/index.md) | 第 0–26 章 |
-| 完整专栏 | [MySQL 实战 45 讲](docs/geektime-mysql-shizhan-45/index.md) | 45 讲正文与 2 篇补充文章 |
+| 类型     | 内容                                                          | 范围                                  |
+| -------- | ------------------------------------------------------------- | ------------------------------------- |
+| 完整教材 | [MySQL 是怎样运行的](docs/mysql-how-it-works/index.md)        | 第 0–26 章                            |
+| 完整专栏 | [MySQL 实战 45 讲](docs/geektime-mysql-shizhan-45/index.md)   | 45 讲正文与 2 篇补充文章              |
+| 学习笔记 | [MySQL 学习笔记](docs/note-mysql/index.md)                    | 基础篇精编 6 章、进阶 6 篇、运维 3 篇 |
 | 学习专题 | [数据库中的数据结构](docs/topics/database-data-structures.md) | 记录、数据页、B+ 树、哈希表与缓存链表 |
 
 ### 收录约定
@@ -34,8 +35,10 @@ docs/
 ├── index.md                    # 学习图鉴首页
 ├── library/index.md            # 教材与专栏目录
 ├── topics/                     # 专题索引与阅读路径
-├── mysql-how-it-works/          # 完整教材及配图
-├── geektime-mysql-shizhan-45/   # 完整专栏及配图
+├── mysql-how-it-works/         # 完整教材及配图
+├── geektime-mysql-shizhan-45/  # 完整专栏及配图
+├── note-mysql/                 # MySQL 学习笔记正文与阅读目录
+├── public/note-mysql/assets/   # MySQL 学习笔记本地配图
 └── .vitepress/                 # 站点配置、主题与侧边栏
 ```
 

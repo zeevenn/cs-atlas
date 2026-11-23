@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import imageFigures from 'markdown-it-image-figures'
 import { groups } from './sidebars/mysql-how-it-works.mjs'
 import { geektimeGroups } from './sidebars/geektime-mysql-shizhan-45.mjs'
+import { noteMysqlGroups } from './sidebars/note-mysql.mjs'
 import { tokenize } from './search.mjs'
 
 const base = process.env.BASE_PATH || '/'
@@ -34,15 +35,17 @@ export default defineConfig({
       { text: '首页', link: '/' },
       {
         text: 'MySQL',
-        activeMatch: '^/(mysql-how-it-works/|geektime-mysql-shizhan-45/|topics/database-data-structures(?:\\.html)?$)',
+        activeMatch: '^/(mysql-how-it-works/|geektime-mysql-shizhan-45/|note-mysql/|topics/database-data-structures(?:\\.html)?$)',
         items: [
           { text: 'MySQL 是怎样运行的', link: '/mysql-how-it-works/' },
           { text: 'MySQL 实战 45 讲', link: '/geektime-mysql-shizhan-45/' },
+          { text: 'MySQL 学习笔记', link: '/note-mysql/' },
           { text: '数据库中的数据结构', link: '/topics/database-data-structures' }
         ]
       }
     ],
     sidebar: {
+      '/note-mysql/': noteMysqlGroups,
       '/topics/': [
         { text: '学习专题', link: '/topics/' },
         {

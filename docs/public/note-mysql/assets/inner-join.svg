@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="304" viewBox="0 0 760 304" role="img" aria-labelledby="title desc">
+  <title id="title">内连接：只保留匹配成功的组合</title>
+  <desc id="desc">林晨和周宁的部门编号 1 都匹配研发部，陈雨的部门编号 2 匹配运营部，产生三行结果。许安与财务部未匹配，不进入结果。</desc>
+  <defs>
+    <marker id="teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#216a78" />
+    </marker>
+    <marker id="amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#946017" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="760" height="304" rx="9" fill="#fff" stroke="none" />
+  <g transform="translate(0 -96)">
+    <text x="32" y="124" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="600" fill="#18333b" text-anchor="start">员工表 employee</text>
+    <text x="484" y="124" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="600" fill="#18333b" text-anchor="start">部门表 department</text>
+    <text x="50" y="157" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="17" font-weight="400" fill="#60737a" text-anchor="start">姓名</text>
+    <text x="180" y="157" font-family="SFMono-Regular,Consolas,monospace" font-size="17" font-weight="400" fill="#60737a" text-anchor="start">department_id</text>
+    <text x="502" y="157" font-family="SFMono-Regular,Consolas,monospace" font-size="17" font-weight="400" fill="#60737a" text-anchor="start">id</text>
+    <text x="568" y="157" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="17" font-weight="400" fill="#60737a" text-anchor="start">部门名称</text>
+    <rect x="32" y="174" width="286" height="42" rx="9" fill="#eaf5f5" stroke="none" />
+    <text x="50" y="202" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#18333b" text-anchor="start">林晨</text>
+    <text x="236" y="202" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#18333b" text-anchor="middle">1</text>
+    <rect x="32" y="228" width="286" height="42" rx="9" fill="#eaf5f5" stroke="none" />
+    <text x="50" y="256" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#18333b" text-anchor="start">周宁</text>
+    <text x="236" y="256" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#18333b" text-anchor="middle">1</text>
+    <rect x="32" y="282" width="286" height="42" rx="9" fill="#eaf5f5" stroke="none" />
+    <text x="50" y="310" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#18333b" text-anchor="start">陈雨</text>
+    <text x="236" y="310" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#18333b" text-anchor="middle">2</text>
+    <rect x="32" y="336" width="286" height="42" rx="9" fill="#f0f2f3" stroke="none" />
+    <text x="50" y="364" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#60737a" text-anchor="start">许安</text>
+    <text x="236" y="364" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#60737a" text-anchor="middle">NULL</text>
+    <rect x="484" y="174" width="244" height="42" rx="9" fill="#eaf5f5" stroke="none" />
+    <text x="512" y="202" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#18333b" text-anchor="start">1</text>
+    <text x="568" y="202" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#18333b" text-anchor="start">研发部</text>
+    <rect x="484" y="228" width="244" height="42" rx="9" fill="#eaf5f5" stroke="none" />
+    <text x="512" y="256" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#18333b" text-anchor="start">2</text>
+    <text x="568" y="256" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#18333b" text-anchor="start">运营部</text>
+    <rect x="484" y="282" width="244" height="42" rx="9" fill="#f0f2f3" stroke="none" />
+    <text x="512" y="310" font-family="SFMono-Regular,Consolas,monospace" font-size="19" font-weight="400" fill="#60737a" text-anchor="start">3</text>
+    <text x="568" y="310" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif" font-size="20" font-weight="400" fill="#60737a" text-anchor="start">财务部</text>
+    <path d="M 320 195 C 384 195, 416 195, 480 195" fill="none" stroke="#216a78" stroke-width="2.5" marker-end="url(#teal)" />
+    <path d="M 320 249 C 384 249, 416 195, 480 195" fill="none" stroke="#216a78" stroke-width="2.5" marker-end="url(#teal)" />
+    <path d="M 320 303 C 384 303, 416 249, 480 249" fill="none" stroke="#216a78" stroke-width="2.5" marker-end="url(#teal)" />
+  </g>
+</svg>

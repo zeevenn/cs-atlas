@@ -4,104 +4,114 @@ title: "1. 日志"
 
 ## 1.1 错误日志
 
-错误日志是 MySQL 中最重要的日志之一，它记录了当 mysqld 启动和停止时，以及服务器在运行过程中发生任何严重错误时的相关信息。当数据库出现任何故障导致无法正常使用时，建议首先查看此日志。 该日志是默认开启的，默认存放目录 `/var/log/`，默认的日志文件名为 mysqld.log 。查看日志 置：
+错误日志记录服务器启动、关闭及运行期间的诊断信息，包括错误、警告等。排查启动失败或异常退出时，应先确认日志去向，而不是假定它一定在 `/var/log/mysqld.log`。
 
 ```sql
-show variables like '%log_error%';
+SHOW VARIABLES LIKE 'log_error';
+SHOW VARIABLES LIKE 'log_error_services';
+SHOW VARIABLES LIKE 'datadir';
 ```
 
-![错误日志（图 1）](/note-mysql/assets/1684127028346-598bae76-afe0-4b53-ab77-d94744b42295.png)
+日志可能写入文件、标准错误输出，或由服务管理器收集，取决于发行包、启动方式和日志组件配置。[错误日志](https://dev.mysql.com/doc/refman/8.4/en/error-log.html)
+
+![错误日志](/note-mysql/assets/1684127028346-598bae76-afe0-4b53-ab77-d94744b42295.png)
 
 ## 1.2 二进制日志
 
-二进制日志（BINLOG）记录了所有的 DDL（数据定义语言）语句和 DML（数据操纵语言）语句，但不包括数据查询（`SELECT`、`SHOW`）语句。
-作用：
-①. 灾难时的数据恢复；
-②. MySQL 的主从复制。在 MySQL 8 版本中，默认二进制日志是开启着的，涉及到的参数如下：
+binlog 记录用于复制和恢复的数据变更事件，以及相关事务信息。MySQL 8.4 默认开启二进制日志，默认使用 `ROW` 格式；实际实例仍可能通过启动选项关闭。
+
+binlog 不是所有操作的逐字 SQL 审计记录。例如，普通查询通常不记录；事务回滚、临时表、非事务表以及日志开关等也会影响具体记录行为。[二进制日志](https://dev.mysql.com/doc/refman/8.4/en/binary-log.html)
 
 ```sql
-show variables like '%log_bin%';
+SELECT @@log_bin, @@binlog_format, @@log_bin_basename, @@log_bin_index;
+SHOW BINARY LOGS;
+SHOW BINARY LOG STATUS;
 ```
 
-![二进制日志（图 1）](/note-mysql/assets/1684127103697-5e0d7d7e-33ed-404e-91b7-ab91ea2451df.png)
-参数说明：
+`SHOW BINARY LOG STATUS` 是 MySQL 8.4 的语法；旧资料中的 `SHOW MASTER STATUS` 已被移除。
 
-- `log_bin_basename`：当前数据库服务器的 binlog 日志的基础名称(前缀)，具体的 binlog 文件名需要再该 basename 的基础上加上编号(编号从 000001 开始)。
-- `log_bin_index`：binlog 的索引文件，里面记录了当前服务器关联的 binlog 文件有哪些。
+![Binlog 配置示例](/note-mysql/assets/1684127103697-5e0d7d7e-33ed-404e-91b7-ab91ea2451df.png)
 
-![二进制日志（图 2）](/note-mysql/assets/1684127210313-747d60c1-b5b2-481e-9a0a-2f1f8b54787c.png)
+| 项目               | 含义                                             |
+| ------------------ | ------------------------------------------------ |
+| `log_bin_basename` | Binlog 文件名前缀，不含最终的编号部分            |
+| `log_bin_index`    | 记录受服务器管理的 binlog 文件列表的索引文件     |
+| `binlog_format`    | 记录格式；8.4 默认 `ROW`，该变量及非行格式已弃用 |
+
+![Binlog 文件与索引文件](/note-mysql/assets/1684127210313-747d60c1-b5b2-481e-9a0a-2f1f8b54787c.png)
+
+![旧环境中的日志格式配置](/note-mysql/assets/1684127249740-2b9cd808-4fb5-48b0-ac5e-ff13bfbe896e.png)
+
+使用 `mysqlbinlog` 查看事件，例如：
+
+```sh
+mysqlbinlog --base64-output=DECODE-ROWS -vv /path/to/binlog.000001
+```
+
+| 选项                                  | 用途                                                     |
+| ------------------------------------- | -------------------------------------------------------- |
+| `--start-position`、`--stop-position` | 按事件位置选择范围，位置应落在有效事件边界               |
+| `--start-datetime`、`--stop-datetime` | 按时间筛选，需要核对时区及事务边界                       |
+| `--offset`                            | 跳过指定数量的日志事件，不是跳过文本行数                 |
+| `-v`、`-vv`                           | 将行事件展开为便于阅读的注释式伪 SQL，后者包含更多元数据 |
+
+`DECODE-ROWS` 生成的可读行事件不能当成可直接重放的 SQL。执行时间点恢复时，需要一致性备份及其后完整的日志链，并按恢复流程生成可重放输出；`--database` 的过滤语义也随记录格式而异，不能随意拿它截取恢复范围。[mysqlbinlog](https://dev.mysql.com/doc/refman/8.4/en/mysqlbinlog.html)
+
+清理 binlog 前，确认备份恢复窗口，以及所有副本、订阅程序仍需要的日志。由服务器执行清理，不要直接用文件删除命令破坏日志索引。
 
 ```sql
-show variables like'%binlog_format%';
+-- 语法示例：执行前必须把目标文件替换为已核实的安全边界
+-- 删除该文件之前的日志，不删除目标文件本身
+PURGE BINARY LOGS TO 'binlog.000010';
 ```
 
-![二进制日志（图 3）](/note-mysql/assets/1684127249740-2b9cd808-4fb5-48b0-ac5e-ff13bfbe896e.png)
-由于日志是以二进制方式存储的，不能直接读取，需要通过二进制日志查询工具 mysqlbinlog 来 看，具体语法：
+![旧环境中的日志清理命令示例](/note-mysql/assets/1684127556074-51342b98-89da-4576-a7d0-fcee4ce32b9a.png)
 
-```text
-mysqlbinlog [ 参数选项 ] logfilename
-
-参数选项：
-
- -d 指定数据库名称，只列出指定的数据库相关操作。
-
- -o 忽略掉日志中的前n行命令。
-
- -v 将行事件(数据变更)重构为SQL语句
-
- -vv 将行事件(数据变更)重构为SQL语句，并输出注释信息
-```
-
-对于比较繁忙的业务系统，每天生成的 binlog 数据巨大，如果长时间不清除，将会占用大量磁盘空间。可以通过以下几种方式清理日志：
-![二进制日志（图 4）](/note-mysql/assets/1684127556074-51342b98-89da-4576-a7d0-fcee4ce32b9a.png)
-也可以在 mysql 的配置文件中配置二进制日志的过期时间，设置了之后，二进制日志过期会自动删除。（默认 30 天）
+离线或延迟副本可能还没拉取待删除日志，服务器无法替你保证这些副本未来仍能接续复制。`RESET BINARY LOGS AND GTIDS` 会重置日志和 GTID 历史，不是常规清理手段。[PURGE BINARY LOGS](https://dev.mysql.com/doc/refman/8.4/en/purge-binary-logs.html)
 
 ```sql
-show variables like'%binlog_expire_logs_seconds%';
+SHOW VARIABLES LIKE 'binlog_expire_logs_seconds';
+SHOW VARIABLES LIKE 'binlog_expire_logs_auto_purge';
 ```
+
+MySQL 8.4 的默认过期时间是 30 天，但实际清理还受自动清理开关和触发时机等影响。保留时间应覆盖副本最大延迟及恢复需要。
 
 ## 1.3 查询日志
 
-查询日志中记录了客户端的所有操作语句，而二进制日志不包含查询数据的 SQL 语句。默认情况下，查询日志是未开启的。
-![查询日志（图 1）](/note-mysql/assets/1684127618677-955313b9-780d-494c-8302-1bc0dd402e0b.png)
-如果需要开启查询日志，可以修改 MySQL 的配置文件 `/etc/my.cnf` 文件，添加如下内容：
+通用查询日志（general query log）主要记录客户端连接、断开及收到的语句，可用于短期排查。它反映收到语句的顺序，不等于事务提交顺序，也不是只记录成功的修改。
 
-```ini
-#该选项用来开启查询日志 ， 可选值 ： 0 或者 1 ； 0 代表关闭， 1 代表开启
+![查询日志](/note-mysql/assets/1684127618677-955313b9-780d-494c-8302-1bc0dd402e0b.png)
 
-general_log=1
+默认关闭，可由有权限的管理员动态开启：
 
-#设置日志的文件名 ， 如果没有指定， 默认的文件名为 host_name.log
-
-general_log_file=mysql_query.log
+```sql
+SHOW VARIABLES LIKE 'log_output';
+SHOW VARIABLES LIKE 'general_log_file';
+SET GLOBAL general_log = ON;
+-- 完成诊断后关闭
+SET GLOBAL general_log = OFF;
 ```
 
-开启了查询日志之后，在 MySQL 的数据存放目录，也就是 `/var/lib/mysql/` 目录下就会出现 `mysql_query`.log 文件。之后所有的客户端的增删改查操作都会记录在该日志文件之中，长时间运 行后，该日志文件将会非常大。
+输出位置由 `log_output` 决定，可以是文件、表或不输出；相对文件路径通常相对于数据目录，不能一概写死为 `/var/lib/mysql/`。日志可能包含业务数据，应控制访问权限和保留时间。[通用查询日志](https://dev.mysql.com/doc/refman/8.4/en/query-log.html)
 
 ## 1.4 慢查询日志
 
-慢查询日志记录了所有执行时间超过参数 `long_query_time` 设置值并且扫描记录数不小于 `min_examined_row_limit` 的所有的 SQL 语句的日志，默认未开启。`long_query_time` 默认为 10 秒，最小为 0，精度可以到微秒。如果需要开启慢查询日志，需要在 MySQL 的配置文件 `/etc/my.cnf` 中配置如下参数：
+慢日志默认关闭，通常记录执行时间达到 `long_query_time` 且检查行数达到 `min_examined_row_limit` 等条件的语句。`long_query_time` 默认是 10 秒，可设置小数。
 
-```ini
-#慢查询日志
-
-slow_query_log=1
-
-#执行时间参数
-
-long_query_time=2
+```sql
+SET GLOBAL slow_query_log = ON;
+SET GLOBAL long_query_time = 2;
+SET SESSION long_query_time = 2;
+SHOW VARIABLES LIKE 'slow_query_log_file';
+SHOW VARIABLES LIKE 'min_examined_row_limit';
 ```
 
-默认情况下，不会记录管理语句，也不会记录不使用索引进行查找的查询。可以使用 `log_slow_admin_statements` 和更改此行为 `log_queries_not_using_indexes`，如下所述。
+这些动态配置不必一律重启服务器。`long_query_time` 的全局值是新连接的默认值，已有连接还需检查自己的会话值；需要跨重启保留时，再使用配置文件或适用变量的持久化设置。
 
-```ini
-#记录执行较慢的管理语句
+| 选项                                     | 含义                                                                         |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| `log_slow_admin_statements`              | 将符合慢日志条件的部分管理语句纳入记录                                       |
+| `log_queries_not_using_indexes`          | 额外记录未使用索引定位的查询，即使未达到时间阈值；仍受其他条件和限流设置影响 |
+| `log_throttle_queries_not_using_indexes` | 限制上述额外记录的速率，避免日志快速膨胀                                     |
 
-log_slow_admin_statements =1
-
-#记录执行较慢的未使用索引的语句
-
-log_queries_not_using_indexes = 1
-```
-
-上述所有的参数配置完成之后，都需要重新启动 MySQL 服务器才可以生效。
+**不开启未使用索引查询的额外记录，不代表慢日志会忽略所有全表扫描。** 普通查询即使没有使用索引，只要达到正常慢日志条件，仍可被记录。[慢日志条件与动态参数](https://dev.mysql.com/doc/refman/8.4/en/slow-query-log.html)

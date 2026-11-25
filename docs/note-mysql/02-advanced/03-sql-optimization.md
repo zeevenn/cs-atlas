@@ -8,171 +8,184 @@ title: "3. SQL 优化"
 
 #### 批量插入
 
-`Insertinto tb_test values(1,'Tom'),(2,'Cat'),(3,'Jerry');`
+多行插入可以减少网络往返和语句处理开销；单次批量大小仍需结合事务时长、包大小和内存占用选择。
+
+```sql
+CREATE TABLE tb_test (
+    id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+) ENGINE = InnoDB;
+
+INSERT INTO tb_test (id, name)
+VALUES (1, 'Tom'), (2, 'Cat'), (3, 'Jerry');
+```
 
 #### 手动事务提交
 
+把多次插入放在同一事务中，可以减少逐条提交的开销；不能因此把无限量数据放进一笔事务。
+
 ```sql
-start transaction;
-
-insert into tb_test values(1,'Tom'),(2,'Cat'),(3,'Jerry');
-
-insert into tb_test values(4,'Tom'),(5,'Cat'),(6,'Jerry');
-
-insert into tb_test values(7,'Tom'),(8,'Cat'),(9,'Jerry');
-commit;
+START TRANSACTION;
+INSERT INTO tb_test (id, name) VALUES (4, 'Tom'), (5, 'Cat');
+INSERT INTO tb_test (id, name) VALUES (6, 'Jerry'), (7, 'Ann');
+COMMIT;
 ```
 
 #### 主键顺序插入
 
-- 主键乱序插入 : 8 1 9 21 88 2 4 15 89 5 7 3
-- 主键顺序插入 : 1 2 3 4 5 7 8 9 15 21 88 89
+InnoDB 按聚集索引组织记录。递增主键通常让插入集中在索引末端，减少随机访问和部分页分裂；不代表所有顺序插入都没有分裂或锁竞争。
 
 ### 3.1.2 大批量插入数据
 
-如果一次性需要插入大批量数据，使用 `insert` 语句插入性能较低，此时可以使用 MySQL 数据库提供的 load 指令进行插入：
-![大批量插入数据（图 1）](/note-mysql/assets/1683607992162-fb2710e0-2ffd-49be-9f0e-f71ff937e93a.png)
+`LOAD DATA` 可以导入分隔符文本。它读取的是数据文件，不是执行包含 `CREATE TABLE`、`INSERT` 的 SQL 脚本。
+
+![大批量插入数据](/note-mysql/assets/1683607992162-fb2710e0-2ffd-49be-9f0e-f71ff937e93a.png)
 
 ```sh
-# 客户端连接服务端时，加上参数 --local-infile
-
-mysql --local-infile -u root -p
+# 仅对可信文件和可信服务器开启本地文件导入
+mysql --local-infile=1 -u root -p atlas_demo
 ```
 
-```sql
--- 设置全局参数local_infile为1，开启从本地加载文件导入数据的开关
-
-set global local_infile = 1;
-
--- 执行load指令将准备好的数据，加载到表结构中
-
-load data local infile '/root/sql1.log' into table tb_user fields
-terminated by ',' lines terminated by '\n' ;
-```
+服务器也需允许 `local_infile`；由管理员按环境决定是否开启。非 `LOCAL` 导入还受 `FILE` 权限及 `secure_file_priv` 等限制。[LOAD DATA 语法与安全要求](https://dev.mysql.com/doc/refman/8.4/en/load-data.html)
 
 #### 案例演示
 
-首先连接服务器并且设置完参数后（`local_infile`）后，创建表：
+用独立表练习，避免与索引章的 `tb_user` 结构冲突：
 
 ```sql
-CREATE TABLE `tb_user` (
- `id` INT(11) NOT NULL AUTO_INCREMENT,
- `username` VARCHAR(50) NOT NULL,
- `password` VARCHAR(50) NOT NULL,
- `name` VARCHAR(20) NOT NULL,
- `birthday` DATE DEFAULT NULL,
- `sex` CHAR(1) DEFAULT NULL,
- PRIMARY KEY (`id`),
- UNIQUE KEY `unique_user_username` (`username`)
-) ENGINE=INNODB DEFAULT CHARSET=utf8 ;
+CREATE TABLE tb_import_user (
+    id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+) ENGINE = InnoDB;
+
+LOAD DATA LOCAL INFILE '/path/to/users.csv'
+INTO TABLE tb_import_user
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+(id, name);
 ```
 
-然后导入 sql 文件 [`load_user_100w_sort`.sql](https://www.yuque.com/attachments/yuque/0/2023/sql/35653686/1683609019369-904f5608-c30a-4ed7-ab6b-68519c9f32fe.sql?_lake_card=%7B%22src%22%3A%22https%3A%2F%2Fwww.yuque.com%2Fattachments%2Fyuque%2F0%2F2023%2Fsql%2F35653686%2F1683609019369-904f5608-c30a-4ed7-ab6b-68519c9f32fe.sql%22%2C%22name%22%3A%22load_user_100w_sort.sql%22%2C%22size%22%3A57650380%2C%22ext%22%3A%22sql%22%2C%22source%22%3A%22%22%2C%22status%22%3A%22done%22%2C%22download%22%3Atrue%2C%22taskId%22%3A%22u694ba945-9e87-484d-8bd5-048dfea12b3%22%2C%22taskType%22%3A%22upload%22%2C%22type%22%3A%22%22%2C%22__spacing%22%3A%22both%22%2C%22mode%22%3A%22title%22%2C%22id%22%3A%22ua966eff0%22%2C%22margin%22%3A%7B%22top%22%3Atrue%2C%22bottom%22%3Atrue%7D%2C%22card%22%3A%22file%22%7D)
-导入文件命令：`load data local infile '/root/load_user_100w_sort.sql' into table tb_user fields terminated by ',' lines terminated by '\n';`
-![案例演示（图 1）](/note-mysql/assets/1683609093736-d6de9cd9-bb45-4feb-866d-9616d8806cfa.png)
-注意：在使用 load 指令的时候，主键顺序插入性能高于乱序插入
+示例文件每行形如 `1,Tom`，不包含表头。带引号、转义字符、不同换行符或表头的文件，需要相应调整导入选项。若文件本身是 SQL 脚本，应在客户端中使用 `SOURCE 文件路径` 等方式执行。
+
+![旧环境中的批量导入结果示例](/note-mysql/assets/1683609093736-d6de9cd9-bb45-4feb-866d-9616d8806cfa.png)
 
 ## 3.2 主键优化
 
 ### 3.2.1 数据组织方式
 
-在 InnoDB 存储引擎中，表数据都是根据主键顺序组织存放的，这种存储方式的表称为索引组织表（Index prganized `table` IOT）。
-![数据组织方式（图 1）](/note-mysql/assets/1683609402461-829339dc-02a4-4831-94b1-5b409055e0a1.png)
-行数据，都是存储在聚集索引的叶子节点上的。而我们之前也讲解过 InnoDB 的逻辑结构图：
-![数据组织方式（图 2）](/note-mysql/assets/1683609468037-e38a3029-ff5e-4fbe-bce7-26a0c6dec812.png)
-在 InnoDB 引擎中，数据行是记录在逻辑结构 page 页中的，而每一个页的大小是固定的，默认 16K。 那也就意味着，一个页中所存储的行也是有限的，如果插入的数据行 row 在该页存储不小，将会存储到下一个页中，页与页之间会通过指针连接。
+InnoDB 的行数据位于聚集索引叶子页中，通常以主键作为聚集键，因此称为索引组织表。逻辑上的键顺序不等于文件中所有页面都连续排列。
+
+![聚集索引与行数据](/note-mysql/assets/1683609402461-829339dc-02a4-4831-94b1-5b409055e0a1.png)
+
+![InnoDB 页面与表空间](/note-mysql/assets/1683609468037-e38a3029-ff5e-4fbe-bce7-26a0c6dec812.png)
+
+页大小由 `innodb_page_size` 决定，默认是 16 KiB；每页可容纳多少行取决于记录大小、页内开销等，不是固定行数。
 
 ### 3.2.2 页分裂
 
-页可以为空，也可以填充一半，也可以填充 100%。每个页包含了 2-N 行数据(如果一行数据过大，会行溢出)，根据主键排列。
-
 #### 主键顺序插入
 
-1. 从磁盘中申请页，逐渐顺序插入
-2. 若第一页没有满，继续往第一页插入
-3. 当第一页写满后，再写入第一个页，页与页之间会通过指针连接
-4. 第二页写满了，在往第三页写入....
+1. 按递增主键向索引末端插入记录。
+2. 页面空间不足时分配新页，并维护索引结构。
 
-![主键顺序插入（图 1）](/note-mysql/assets/1683609782965-f0654815-6201-417e-925c-5f8d3cda8a33.png)
+![主键顺序插入](/note-mysql/assets/1683609782965-f0654815-6201-417e-925c-5f8d3cda8a33.png)
 
 #### 主键乱序插入
 
-1. 若页 1，页 2 已经写满，存放了如下数据：
-   1. ![主键乱序插入（图 1）](/note-mysql/assets/1683609905001-48e88274-4814-4c01-affa-1a93e13464a0.png)
-2. 此时再插入 `id` 为 50 的记录，不会开启新的一页，因为索引结构的叶子节点是有序的，按照顺序应该存放在 47 之后。
-   1. ![主键乱序插入（图 2）](/note-mysql/assets/1683609967969-312ded27-6a76-4e7e-be47-e81e118b3483.png)
-3. 但是 47 所在的页 1 已经写满了，存储不了 50 对应的数据，此时会开辟一个新的页 3，但是并不会把 50 直接存放进页 3，而是将页 1 后一半的数据移动到页 3，然后再页 3 插入 50 对应的数据，此时需要重新设置链表指针。
-   1. ![主键乱序插入（图 3）](/note-mysql/assets/1683610052314-88fb6069-8cb9-4ff9-9fd2-8dd64a12ad9b.png)
-   2. ![主键乱序插入（图 4）](/note-mysql/assets/1683610060116-c4bab20b-c6b7-46f7-9640-1373c19f1aa5.png)
-   3. ![主键乱序插入（图 5）](/note-mysql/assets/1683610065925-04e05375-5514-4e25-9009-5d34acbe2784.png)
+1. 新键可能需要插入已有页面的中间位置。
 
-这种现象被称为「页分裂」，是比较耗费性能的操作。
+![插入前的页面](/note-mysql/assets/1683609905001-48e88274-4814-4c01-affa-1a93e13464a0.png)
+
+1. 先定位新键在索引中的位置。
+
+![定位待插入的键](/note-mysql/assets/1683609967969-312ded27-6a76-4e7e-be47-e81e118b3483.png)
+
+1. 页面空间不足时，可能分配新页、重新分配记录，并维护页面链接及上层索引。
+
+![分配新页](/note-mysql/assets/1683610052314-88fb6069-8cb9-4ff9-9fd2-8dd64a12ad9b.png)
+
+![调整页内记录](/note-mysql/assets/1683610060116-c4bab20b-c6b7-46f7-9640-1373c19f1aa5.png)
+
+![维护页面链接](/note-mysql/assets/1683610065925-04e05375-5514-4e25-9009-5d34acbe2784.png)
+
+这个过程称为页分裂。图中的移动方式用于解释原理，不表示每次都机械地移动一半记录。
 
 ### 3.2.3 页合并
 
-当删除一行记录时，实际上记录并没有被物理删除，只是记录被标记（Flaged）为删除并且它的空间变得允许被其他记录声明使用。
-当页中删除的记录达到 `MERGE_THRESHOLD`(默认为页的 50%)，InnoDB 会开始寻找最靠近的页（前或后）看看是否可以将两个页合并以优化空间使用：
-![页合并（图 1）](/note-mysql/assets/1683610374550-af831cba-553f-4748-a402-4265ad41a5ff.png)
-`MERGE_THRESHOLD`：合并页的阈值，可以自己设置，在创建表或者创建索引时指定。
+删除记录通常先做删除标记，再由 purge 等过程清理。页面空间利用率过低时，InnoDB 会尝试合并相邻页；能否合并取决于相邻页是否有足够空间。
+
+![页合并](/note-mysql/assets/1683610374550-af831cba-553f-4748-a402-4265ad41a5ff.png)
+
+`MERGE_THRESHOLD` 控制尝试合并时的页面填充率阈值，默认是 50%。它不是「删除行数达到一半就必然合并」。[页合并阈值](https://dev.mysql.com/doc/refman/8.4/en/index-page-merge-threshold.html)
 
 ### 3.2.4 主键设计原则
 
-- 满足业务需求的情况下，尽量降低主键的长度
-- 插入数据时，尽量选择顺序插入，选择使用 `AUTO_INCREMENT` 自增主键
-- 尽量不要使用 UUID 做主键或者是其他自然主键，如身份证号。
-- 业务操作时，避免对主键的修改。
+- 在满足业务唯一性和取值范围的前提下，选择较短、稳定的主键。
+- 递增主键通常有利于插入局部性，但仍需考虑热点和分布式生成需求。
+- 随机 UUID 可能增加索引体积与随机访问；是否采用要结合编码方式、写入模式和业务约束判断。
+- 尽量避免频繁修改主键，二级索引也保存聚集键，修改会增加维护成本。
 
 ## 3.3 ORDER BY 优化
 
-- `Using filesort`：通过表的索引或全表扫描，读取满足条件的数据行，然后在排序缓冲区 `sort buffer` 中完成排序操作，所有不是通过索引直接返回排序结果的排序都叫 FileSort 排序。
-- `Using index`：通过有序索引顺序扫描直接返回有序数据，这种情况即为 `Using index`，不需要额外排序，操作效率高。
+有两种常见方式：按可满足排序的索引顺序读取，或额外执行 `filesort`。`Using filesort` 不表示一定写磁盘，是否溢出取决于数据规模和排序缓冲区。
 
-对于以上的两种排序方式，`Using index` 的性能高，而 `Using filesort` 的性能低，我们在优化排序 操作时，尽量要优化为 `Using index`。
+`Using index` 表示覆盖索引，**不能仅凭这个标记判断是否避免了排序**。要结合 `ORDER BY`、索引列顺序、执行计划中的排序节点或 `Using filesort` 分析。[ORDER BY 优化](https://dev.mysql.com/doc/refman/8.4/en/order-by-optimization.html)
 
 ### 案例演示
 
-![案例演示（图 1）](/note-mysql/assets/1683611736658-a5a874ee-c7c7-40f1-86a8-8e4404923b51.png)
-![案例演示（图 2）](/note-mysql/assets/1683612032954-2131997a-7e4f-44b1-b642-970cb7684dd2.png)
+![排序执行计划示例](/note-mysql/assets/1683611736658-a5a874ee-c7c7-40f1-86a8-8e4404923b51.png)
+
+![不同排序方向的执行计划示例](/note-mysql/assets/1683612032954-2131997a-7e4f-44b1-b642-970cb7684dd2.png)
 
 ### 优化原则
 
-- 根据排序字段建立合适的索引，多字段排序时，也遵循最左前缀法则。
-- 尽量使用覆盖索引
-- 多字段排序，一个升序一个降序，此时需要注意联合索引在创建时的规则
-- 如果不可避免地出现 filesort，大数据量排序时，可以适当增大排序缓冲区的大小：`sort_buffer_size`（默认 256K）。
+- 结合等值过滤条件和排序列设计联合索引。
+- MySQL 8.4 支持降序索引；混合升降序排序需要合适的索引方向，也可能通过反向扫描满足。
+- 只查询需要的列，覆盖索引可能减少回表。
+- 无法避免排序时，再结合实际排序规模评估 `sort_buffer_size`，不要盲目增大所有连接的内存配置。
 
 ## 3.4 GROUP BY 优化
 
-![GROUP BY 优化（图 1）](/note-mysql/assets/1683612718935-72f18e62-e500-44ce-a1b0-d168f19c9205.png)
+![GROUP BY 优化](/note-mysql/assets/1683612718935-72f18e62-e500-44ce-a1b0-d168f19c9205.png)
 
-- 在分组操作时，可以通过索引来提高效率。
-- 分组操作时，索引的使用也是满足最左前缀法则的。
+合适的索引可能减少分组扫描、排序或临时表开销，具体取决于分组列、过滤条件和聚合方式。`GROUP BY` 不保证输出顺序，需要排序时显式写 `ORDER BY`。[GROUP BY 优化](https://dev.mysql.com/doc/refman/8.4/en/group-by-optimization.html)
 
 ## 3.5 LIMIT 优化
 
-在数据量比较大时，如果进行 `limit` 分页查询，在查询时，越往后，分页查询效率越低。
-案例演示：在 1000w 条记录的表中分页查询：
-![LIMIT 优化（图 1）](/note-mysql/assets/1683613643399-0e3dace1-69db-4bcd-a07a-9f5f76051b97.png)
-通过测试我们会看到，越往后，分页查询效率越低，这就是分页查询的问题所在。 因为，当在进行分页查询时，如果执行 `limit 2000000,10`，此时需要 MySQL 排序前 2000010 记录，仅仅返回 2000000 - 2000010 的记录，其他记录丢弃，查询排序的代价非常大。
-优化思路: 一般分页查询时，通过创建覆盖索引能够比较好地提高性能，可以通过覆盖索引加子查询形式进行优化。
+深分页的成本来自跳过前面的记录。`LIMIT 2000000, 10` 通常仍需访问前面的记录；如果索引已经满足排序，也不意味着这些记录都要额外排序。
+
+![深分页执行示例](/note-mysql/assets/1683613643399-0e3dace1-69db-4bcd-a07a-9f5f76051b97.png)
+
+可以先从覆盖索引中取得目标主键，再取完整行。以下 `tb_sku` 来自索引章的独立测试表：
 
 ```sql
-explain select * from tb_sku t , (select id from tb_sku order by id   limit 2000000,10) a where t.id = a.id;
+SELECT t.*
+FROM tb_sku AS t
+INNER JOIN (
+    SELECT id FROM tb_sku ORDER BY id LIMIT 2000000, 10
+) AS page ON page.id = t.id
+ORDER BY t.id;
 ```
 
-![LIMIT 优化（图 2）](/note-mysql/assets/1683613956369-4c97005e-aca8-475a-9616-1a5b7b9d868c.png)
+![延迟获取完整行的示例](/note-mysql/assets/1683613956369-4c97005e-aca8-475a-9616-1a5b7b9d868c.png)
+
+这能减少部分回表开销，但不能消除跳过记录的成本。连续翻页且允许以主键作为游标时，可以使用 `WHERE id > 上次末尾编号 ORDER BY id LIMIT 10`；并发增删及不同排序规则需要另行考虑。
 
 ## 3.6 COUNT 优化
 
-- MyISAM 引擎把一个表的总行数存在了磁盘上，因此执行 `count(*)` 的时候会直接返回这个 数，效率很高；但是如果是带条件的 `count`，MyISAM 也慢。
-- InnoDB 引擎就麻烦了，它执行 `count(*)` 的时候，需要把数据一行一行地从引擎里面读出 来，然后累积计数。
+- `COUNT(*)` 统计匹配行数；`COUNT(列)` 只统计该列非空的行，语义不同。
+- InnoDB 不维护所有事务都能直接使用的精确总行数，需要按当前事务可见性扫描索引等结构进行计数。
+- MyISAM 对单表、无 `WHERE` 的总行数统计有专门优化，不能推广到所有带条件查询。
 
-如果说要大幅度提升 InnoDB 表的 `count` 效率，主要的优化思路：自己计数(可以借助于 redis 这样的数 据库进行,但是如果是带条件的 `count` 又比较麻烦了)。
-`count()` 是一个聚合函数，对于返回的结果集，一行行地判断，如果 `count` 函数的参数不是 `NULL`，累计值就加 1，否则不加，最后返回累计值。
-用法：`count(*)`、`count(主键)`、`count(字段)`、`count(数字)`
-![COUNT 优化（图 1）](/note-mysql/assets/1683614139218-51f59b2e-4cbd-4f4b-b5c4-c7fc67d99bf8.png)
-按照效率排序的话，`count(字段)` `<` `count(主键 id)` `<` `count(1)` ≈ `count(*)`，所以尽量使用 `count(*)`。
+![旧环境中的计数执行示例](/note-mysql/assets/1683614139218-51f59b2e-4cbd-4f4b-b5c4-c7fc67d99bf8.png)
+
+InnoDB 对 `COUNT(1)` 和 `COUNT(*)` 的处理相同，不存在必须套用的「列 < 主键 < 1 < *」性能排名。按正确语义选择写法，再检查过滤条件和执行计划。[COUNT 规则](https://dev.mysql.com/doc/refman/8.4/en/aggregate-functions.html)
+
+预先维护计数可以减少查询成本，但必须同时解决事务一致性、失败重试和并发更新；用缓存保存一个数字并不会自动得到准确结果。
 
 ## 3.7 UPDATE 优化
 
-InnoDB 的行锁是针对索引加的锁，不是针对记录加的锁 ,并且该索引不能失效，否则会从行锁 升级为表锁。其实简单来说就是两个事务同时修改表记录，如果查询条件是索引列，则使用的是行锁，锁的是当前这条记录，如果查询条件是非索引列，那么行锁就会升级为表锁，另一个事务会阻塞，直到其他事务已经提交完成。
+InnoDB 的记录锁加在索引记录上。缺少合适索引时，语句可能扫描并锁住大量记录，影响范围看起来接近整表，但 **不会因此自动把行锁升级成表锁**。
+
+锁的范围取决于实际扫描的索引、隔离级别和匹配情况。`READ COMMITTED` 还会释放不匹配记录的部分锁；不能只凭 `WHERE` 中写了索引列，就认定只锁一行。应缩小扫描范围、保持事务简短，并结合 [锁章节](05-locks.md) 分析。[InnoDB 语句加锁规则](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html)

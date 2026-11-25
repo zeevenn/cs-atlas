@@ -4,540 +4,451 @@ title: "4. 视图、存储过程与触发器"
 
 ## 4.1 视图
 
-视图（View）是一种虚拟存在的表。视图中的数据并不在数据库中实际存在，行和列数据来自定义视图的查询中使用的表，并且是在使用视图时动态生成的。 通俗的讲，视图只保存了查询的 SQL 逻辑，不保存查询结果。所以我们在创建视图的时候，主要的工作就落在创建这条 SQL 查询语句上。
+视图保存查询定义，读取时根据基础表等对象生成结果，通常不保存独立的查询结果副本。修改可更新视图，实际修改的也是基础表数据。
 
 ### 4.1.1 操作语法
 
-- 创建：`CREATE [OR REPLACE] VIEW 视图名称[(列名列表)] AS SELECT语句 [ WITH [ CASCADED | LOCAL ] CHECK OPTION ]`
-- 查询：
-    - 查看创建视图语句：`SHOW CREATE VIEW 视图名称;`
-    - 查看视图数据：`SELECT * FROM视图名称 ...... ;`
-- 修改：
-    - 方式一：`CREATE [OR REPLACE] VIEW 视图名称[(列名列表)] AS SELECT语句 [ WITH [ CASCADED | LOCAL ] CHECK OPTION ]`
-    - 方式二：`ALTER VIEW 视图名称[(列名列表)] AS SELECT语句 [ WITH [ CASCADED | LOCAL ] CHECK OPTION ]`
-- 删除：`DROP VIEW [IF EXISTS] 视图名称 [,视图名称] ...`
+本章在练习数据库中使用索引章的 `tb_user`，学生示例另建以下表。对象按顺序创建一次即可，不要在已有业务表上直接执行建表练习。
 
 ```sql
-# 创建视图
-create or replace view stu_v_1 as select id ,name from student where id <= 10;
-# 查询视图
-show create view stu_v_1;
-select * from stu_v_1;
-# 修改视图
-create or replace view stu_v_1 as select id ,name, no from student where id <= 10;
-alter view stu_v_1 as select id ,name from student where id <= 10;
-# 删除试图
-drop view stu_v_1;
+CREATE TABLE student (
+    id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    no VARCHAR(20)
+) ENGINE = InnoDB;
+
+INSERT INTO student (id, name, no)
+VALUES (1, '林晨', 'S001'), (2, '周宁', 'S002');
+
+CREATE VIEW stu_v_1 AS
+SELECT id, name FROM student WHERE id <= 10;
+SHOW CREATE VIEW stu_v_1;
+SELECT * FROM stu_v_1 ORDER BY id;
+
+CREATE OR REPLACE VIEW stu_v_1 AS
+SELECT id, name, no FROM student WHERE id <= 10;
+ALTER VIEW stu_v_1 AS
+SELECT id, name FROM student WHERE id <= 10;
+DROP VIEW stu_v_1;
 ```
 
-上述我们演示了，视图应该如何创建、查询、修改、删除，那么我们能不能通过视图来插入、更新数据 呢？接下来，做一个测试。
+没有检查选项时，通过可插入视图写入的数据可以不满足视图条件：
 
 ```sql
-create or replace view  stu_v_1 as select id, name from student where id <= 20;
-select * from stu_v_1;
-insert into stu_v_1 values (6,'Tom');
-insert into stu_v_1 values (17,'Marry');
-insert into stu_v_1 values (22,'Bob');
+CREATE VIEW stu_v_1 AS
+SELECT id, name FROM student WHERE id <= 20;
+
+INSERT INTO stu_v_1 (id, name)
+VALUES (6, 'Tom'), (17, 'Mary'), (22, 'Bob');
+SELECT * FROM stu_v_1 ORDER BY id;
+SELECT * FROM student WHERE id = 22;
 ```
 
-执行上述的 SQL，我们会发现，`id` 为 6 和 17 的数据都是可以成功插入的。但是我们执行查询，查询出来的数据，却没有 `id` 为 22 的记录。
-![操作语法（图 1）](/note-mysql/assets/1683616597885-df5fbd31-9c5e-445c-9bd2-2b16a42fa309.png)
-因为我们在创建视图的时候，指定的条件为 `id<=20`, `id` 为 22 的数据，是不符合条件的，所以没有查询出来，但是这条数据确实是已经成功的插入到了基表中。
-如果我们定义视图时，如果指定了条件，然后我们在插入、修改、删除数据时，是否可以做到必须满足 条件才能操作，否则不能够操作呢？答案是可以的，这就需要借助于视图的检查选项了。
+编号 `22` 的学生已经写入基础表，但不会出现在视图中。
+
+![视图筛选与基础表数据](/note-mysql/assets/1683616597885-df5fbd31-9c5e-445c-9bd2-2b16a42fa309.png)
 
 ### 4.1.2 检查选项
 
-当使用 `WITH CHECK OPTION` 子句创建视图时，MySQL 会通过视图检查正在更改的每个行，例如插入，更新，删除，以使其符合视图的定义。 MySQL 允许基于另一个视图创建视图，它还会检查依赖视图中的规则以保持一致性。为了确定检查的范围，mysql 提供了两个选项： `CASCADED` 和 `LOCAL`，默认值为 `CASCADED`。
+`WITH CHECK OPTION` 检查通过可更新视图执行的插入、更新，防止修改后的记录违反检查范围内的视图条件。它不是用于限制删除的额外过滤器。
 
-- `CASCADED` → 级联
-    - 比如，`v2` 视图是基于 `v1` 视图的，如果在 `v2` 视图创建的时候指定了检查选项为 `cascaded`，但是 `v1` 视图创建时未指定检查选项。则在执行检查时，不仅会检查 `v2`，还会级联检查 `v2` 的关联视图 `v1`。
-    - ![检查选项（图 1）](/note-mysql/assets/1683616892235-59955aeb-9689-4cff-ae3d-f8435c82f87b.png)
-- `LOCAL` → 本地
-    - 比如，`v2` 视图是基于 `v1` 视图的，如果在 `v2` 视图创建的时候指定了检查选项为 `local`，但是 `v1` 视图创建时未指定检查选项。则在执行检查时，只会检查 `v2`，不会检查 `v2` 的关联视图 `v1`。
-    - ![检查选项（图 2）](/note-mysql/assets/1683617191120-fa3c86ca-719c-4e58-ad17-275459d3f024.png)
+**CASCADED**：检查当前视图，并把级联检查要求递归应用到底层视图，即使底层视图没有声明自己的检查选项。省略 `LOCAL` / `CASCADED` 时，默认使用 `CASCADED`。
+
+![CASCADED 检查范围](/note-mysql/assets/1683616892235-59955aeb-9689-4cff-ae3d-f8435c82f87b.png)
+
+**LOCAL**：检查当前视图，再按底层视图自己的检查选项递归处理。底层视图未声明检查选项时，不会因为当前视图是 `LOCAL` 就强制检查它；但已经声明的底层检查仍然生效。
+
+![LOCAL 检查范围](/note-mysql/assets/1683617191120-fa3c86ca-719c-4e58-ad17-275459d3f024.png)
+
+```sql
+CREATE VIEW stu_v_local AS
+SELECT id, name FROM stu_v_1 WHERE id >= 10
+WITH LOCAL CHECK OPTION;
+
+CREATE VIEW stu_v_cascaded AS
+SELECT id, name FROM stu_v_1 WHERE id >= 10
+WITH CASCADED CHECK OPTION;
+
+-- stu_v_1 没有检查选项，25 满足当前 LOCAL 视图的条件，可以写入基础表
+INSERT INTO stu_v_local (id, name) VALUES (25, 'Local');
+SELECT id, name FROM student WHERE id = 25;
+```
+
+下面的写入则会失败，因为级联检查还要求满足底层的 `id <= 20`：
+
+```sql
+-- 预期报错：CHECK OPTION failed
+INSERT INTO stu_v_cascaded (id, name) VALUES (26, 'Cascaded');
+```
+
+若为底层 `stu_v_1` 增加检查选项，之后经由 `stu_v_local` 的写入也必须满足那个底层检查。[视图检查选项](https://dev.mysql.com/doc/refman/8.4/en/view-check-option.html)
 
 ### 4.1.3 视图的更新
 
-要使视图可更新，视图中的行与基础表中的行之间必须存在一对一的关系。如果视图包含以下任何一 项，则该视图不可更新：
+可更新性取决于视图与基础表之间是否存在可明确映射的记录和列。含以下结构的视图通常不能直接更新：
 
-- 聚合函数或窗口函数（`SUM`()、 `MIN`()、 `MAX`()、 `COUNT()` 等）
-- `DISTINCT`
-- `GROUP BY`
-- `HAVING`
-- `UNION` 或者 `UNION ALL`
+- 聚合函数或窗口函数，例如 `SUM()`、`COUNT()`。
+- `DISTINCT`、`GROUP BY`、`HAVING`。
+- `UNION`、`UNION ALL` 等集合运算。
+
+连接视图在特定条件下也可能更新部分基础表，所以不能简单认为「所有多表视图都不能更新」。可插入还需要满足基础表必填列等要求。[可更新与可插入视图](https://dev.mysql.com/doc/refman/8.4/en/view-updatability.html)
 
 ### 4.1.4 视图的作用
 
-- **简单**：试图不仅可以简化用户对数据的理解，也可以简化他们的操作。那些被经常使用的查询可以定义为视图，从而使得用户不必为以后的操作每次指定全部的条件。
-- **安全**：数据库可以授权，但是不能授权到数据库特定行和特定列上，通过试图用户只能查询和修改他们所能见到的数据。
-- **数据独立**：试图可帮助用户屏蔽真实表结构变化带来的影响，比如基表字段改名了，那么更新视图，给修改的的字段名用原来的名字作为别名即可屏蔽这一变化。
+- **简化查询**：封装常用连接与筛选逻辑。
+- **控制可见范围**：通过列选择和行条件暴露部分数据，并配合视图权限、`SQL SECURITY` 和基础表权限管理。
+- **稳定查询接口**：基础表调整后，可以在视图中使用别名等方式维持对外字段，但需要维护视图定义。
+
+MySQL 本身支持列级授权；视图并不是因为数据库「不能给列授权」才有安全作用。若用户仍有直接读取基础表的权限，就能绕过视图的可见范围。
 
 ### 4.1.5 案例演示
 
-需求：
-
-- 为了保证数据库表的安全性，开发人员在操作 `tb_user` 表时，只能看得到用户的基本字段，屏蔽手机号和邮箱两个字段。
-- 查询每个学生所选修的课程（三表联查），这个功能在很多的业务中都有使用到，为了简化操作，定义一个视图。
+隐藏手机号、邮箱等列：
 
 ```sql
-# 为了保证数据库表的安全性，开发人员在操作tb_user表时，只能看得到用户的基本字段，屏蔽手机号和邮箱两个字段。
-create view tb_user_v as select id,name,profession,age,gender,status,createtime from tb_user;
-select * from tb_user_v;
-
-# 查询每个学生所选修的课程（三张表联查），这个功能在很多的业务中都有使用到，为了简化操作，定义一个视图。
-create view tb_stu_course_view as select s.name student_name , s.no student_no, c.name course_name from student s, student_course sc , course c where s.id =sc.studentid and sc.courseid = c.id;
-select * from tb_stu_course_view;
+CREATE VIEW tb_user_v AS
+SELECT id, name, profession, age, gender, status, createtime FROM tb_user;
+SELECT * FROM tb_user_v ORDER BY id;
 ```
 
-![案例演示（图 1）](/note-mysql/assets/1683618470625-a1709695-096e-44d6-b9ae-fb06ba70714c.png)
+将学生与课程的连接封装为视图：
+
+```sql
+CREATE TABLE course (id INT PRIMARY KEY, name VARCHAR(50) NOT NULL);
+CREATE TABLE student_course (
+    studentid INT NOT NULL,
+    courseid INT NOT NULL,
+    PRIMARY KEY (studentid, courseid)
+);
+INSERT INTO course VALUES (1, '数据库'), (2, '操作系统');
+INSERT INTO student_course VALUES (1, 1), (1, 2), (2, 1);
+
+CREATE VIEW tb_stu_course_view AS
+SELECT s.name AS student_name, s.no AS student_no, c.name AS course_name
+FROM student AS s
+INNER JOIN student_course AS sc ON sc.studentid = s.id
+INNER JOIN course AS c ON c.id = sc.courseid;
+SELECT * FROM tb_stu_course_view ORDER BY student_no, course_name;
+```
+
+![视图查询示例](/note-mysql/assets/1683618470625-a1709695-096e-44d6-b9ae-fb06ba70714c.png)
 
 ## 4.2 存储过程
 
-存储过程是事先经过编译并存储在数据库中的一段 SQL 语句的集合，调用存储过程可以简化应用开发人员的很多工作，减少数据在数据库和应用服务器之间的传输，对于提高数据处理的雄安率是有好处的。存储过程思想上很简单，就是数据库 SQL 语言层面的代码封装与重用。
-![存储过程（图 1）](/note-mysql/assets/1683620441606-7ef1ad53-51f4-4e76-ac3f-429f4c3476f3.png)
-特点：
+存储过程把一组 SQL 保存在服务器端，通过 `CALL` 调用。它可以封装业务步骤并减少网络往返，但不会自动让复杂 SQL 更快，也不会自动把全部操作放进一笔事务。
 
-- 封装和复用 → 可以把一段业务 SQL 封装在存储过程中，需要用到的时候直接调用即可。
-- 可以接受参数也可以返回数据 → 在存储过程中，可以传递参数，也可以接受返回值。
-- 减少网络交互，效率提升 → 如果涉及到多条 SQL，每执行一次都是一次网络传输。而如果封装在存储过程中，我们只需要网络交互一次就可以了。
+![存储过程](/note-mysql/assets/1683620441606-7ef1ad53-51f4-4e76-ac3f-429f4c3476f3.png)
 
 ### 4.2.1 基本语法
 
-- 创建：
+MySQL 命令行客户端默认用分号判断语句结束。创建含多条语句的程序时，先用客户端指令 `DELIMITER` 临时改变结束符；它不是发给服务器执行的 SQL。通过驱动或其他工具创建时，要遵循该工具的提交方式。
 
 ```sql
-CREATE PROCEDURE 存储过程名称 ([ 参数列表 ])
-
+DELIMITER $$
+CREATE PROCEDURE p1()
 BEGIN
+    SELECT COUNT(*) AS student_count FROM student;
+END$$
+DELIMITER ;
 
- -- SQL语句
-
-END ;
+CALL p1();
+SHOW CREATE PROCEDURE p1;
+SELECT routine_name, routine_type
+FROM information_schema.routines
+WHERE routine_schema = DATABASE();
+DROP PROCEDURE p1;
 ```
 
-- 调用 ：`CALL 名称 ([ 参数 ]);`
-- 查看：`SELECT * FROM INFORMATION_SCHEMA.ROUTINESWHERE ROUTINE_SCHEMA = 'xxx';` -- 查询指 定数据库的存储过程及状态信息
-    - `SHOW CREATE PROCEDURE 存储过程名称 ;` -- 查询某个存储过程的定义
-- 删除：`DROP PROCEDURE [ IF EXISTS ] 存储过程名称；`
-
-```sql
-# 创建存储过程
-create procedure p1()
-begin
-    select count(*) from student;
-end;
-# 调用存储过程
-call p1();
-# 查看存储过程
-select * from information_schema.ROUTINES where ROUTINE_SCHEMA = 'itcast';
-show create procedure p1;
-# 删除存储过程
-drop procedure if exists  p1;
-```
-
-注意：在命令行中，执行创建存储过程的 SQL 时，需要通过关键字 `delimiter` 指定 SQL 语句的 结束符。
+`BEGIN ... END` 表示程序块，不等于 `START TRANSACTION`。创建、执行程序分别需要相应权限。[存储程序定义](https://dev.mysql.com/doc/refman/8.4/en/stored-programs-defining.html)
 
 ### 4.2.2 变量
 
-在 MySQL 中变量分为三种类型：系统变量、用户定义变量、局部变量。
-
 #### 系统变量
 
-系统变量是 MySQL 服务器提供，不是用户定义的，属于服务器层面。分为全局变量（`GLOBAL`）、会话变量（`SESSION`）。
-查看系统变量：
-
 ```sql
-SHOW [ SESSION | GLOBAL ] VARIABLES ; -- 查看所有系统变量
-
-SHOW [ SESSION | GLOBAL ] VARIABLES LIKE '......'; -- 可以通过LIKE模糊匹配方
-式查找变量
-
-SELECT @@[SESSION | GLOBAL] 系统变量名; -- 查看指定变量的值
+SHOW SESSION VARIABLES LIKE 'group_concat_max_len';
+SELECT @@session.group_concat_max_len, @@global.group_concat_max_len;
+SET SESSION group_concat_max_len = 8192;
 ```
 
-设置系统变量：
+会话变量影响当前连接。对兼有全局和会话作用域的变量，修改全局默认值通常影响以后建立的连接，不直接覆盖已有连接的会话值。部分变量只读或只有全局作用域，不能套用同一种设置方法。
 
-```sql
-SET [ SESSION | GLOBAL ] 系统变量名 = 值 ;
-
-SET @@[SESSION | GLOBAL]系统变量名 = 值 ;
-```
-
-注意：
-
-- 如果没有指定 `SESSION`/`GLOBAL`，默认是 `SESSION` 会话变量
-- 全局变量针对于所有的会话。
-- 会话变量针对于单个会话，在另外一个窗口就不生效了
-- mysql 服务重新启动之后，所设置的全局参数会失效，要想不失效，可以在 `/etc/my.cnf` 中配置。
+`SET GLOBAL` 的动态修改通常不会跨重启保存；持久化可通过配置文件或适用变量的 `SET PERSIST` 完成，需要相应管理权限。[系统变量](https://dev.mysql.com/doc/refman/8.4/en/using-system-variables.html)
 
 #### 用户自定义变量
 
-用户定义变量使用户根据需要自己定义的变量，用户变量不用提前声明，在用的时候直接用 `@变量名` 使用就可以，其作用域为当前连接。
-赋值：
+用户变量以 `@` 开头，作用域是当前连接，不用提前声明；未赋值时为 `NULL`。
 
-- `SET @var_name = expr [, @var_name = expr] ... ;`
-- `SET @var_name := expr [, @var_name := expr] ... ;`
-- `SELECT @var_name := expr [, @var_name := expr] ... ;`
-- `SELECT字段名INTO @var_name FROM表名;`
+```sql
+SET @student_count = 0;
+SELECT COUNT(*) INTO @student_count FROM student;
+SELECT @student_count;
+```
 
-使用：`SELECT @var_name ;`
-注意:用户定义的变量无需对其进行声明或初始化，只不过获取到的值为 `NULL`。
+优先用 `SET` 或 `SELECT ... INTO` 赋值，避免依赖同一表达式中用户变量赋值与读取的求值顺序。
 
 #### 局部变量
 
-局部变量是根据需要定义的在局部生效的变量，访问之前，需要 `DECLARE` 声明。可用作存储过程内的局部变量和输入参数，局部变量的范围是其内声明的 `BEGIN...END` 块。
-声明：`DECLARE 变量名变量类型 [DEFAULT ... ] ;`
-变量类型就是数据库字段类型：`INT`、`BIGINT`、`CHAR`、`VARCHAR`、`DATE`、`TIME` 等。
-赋值：
-
-- `SET变量名 = 值 ;`
-- `SET变量名 := 值 ;`
-- `SELECT字段名INTO变量名FROM表名 ... ;`
-
-演示：
+局部变量用 `DECLARE` 在程序块开头声明，作用域限于对应程序块。声明应位于游标、处理器和可执行语句之前，并遵守各类声明的顺序。
 
 ```sql
-create procedure p2()
-begin
-    declare stu_count int default 0;
-    set stu_count := 100;
-    select count(*) into stu_count from student;
-end;
-
-call p2();
+DELIMITER $$
+CREATE PROCEDURE p2()
+BEGIN
+    DECLARE stu_count INT DEFAULT 0;
+    SELECT COUNT(*) INTO stu_count FROM student;
+    SELECT stu_count;
+END$$
+DELIMITER ;
+CALL p2();
 ```
 
-### 4.2.3 if
+### 4.2.3 IF
 
-`if` 用于做条件判断，具体的语法结构为：
+程序中的条件分支以 `END IF` 结束，中间分支写作 `ELSEIF`：
 
 ```sql
-IF 条件1 THEN
- .....
-ELSEIF 条件2 THEN -- 可选
-
- .....
-ELSE -- 可选
-
- .....
-END IF;
+DELIMITER $$
+CREATE PROCEDURE p3()
+BEGIN
+    DECLARE score INT DEFAULT 58;
+    DECLARE result VARCHAR(10);
+    IF score >= 85 THEN
+        SET result = '优秀';
+    ELSEIF score >= 60 THEN
+        SET result = '及格';
+    ELSE
+        SET result = '不及格';
+    END IF;
+    SELECT result;
+END$$
+DELIMITER ;
+CALL p3();
 ```
 
-在 `if` 条件判断的结构中，`ELSE IF` 结构可以有多个，也可以没有。 `ELSE` 结构可以有，也可以没有。
-案例：根据定义的分数 `score` 变量，判定当前对应的分数等级
-
-- `score >= 85` 分，等级为优秀。
-- `score >= 60` 分且 `score < 85` 分，等级为及格。
-- `score < 60` 分，等级为不及格。
-
-```sql
-create procedure p3()
-begin
-    declare score int default 58;
-    declare result varchar(10);
-    if score >= 85 then
-        set result := '优秀';
-    elseif score >= 60 then
-        set result := '及格';
-    else
-        set result := '不及格';
-    end if;
-    select result;
-end;
-
-call p3();
-```
-
-上述的需求我们虽然已经实现了，但是也存在一些问题，比如：`score` 分数我们是在存储过程中定义 死的，而且最终计算出来的分数等级，我们也仅仅是最终查询展示出来而已。 那么我们能不能，把 `score` 分数动态的传递进来，计算出来的分数等级是否可以作为返回值返回呢？答案是肯定的，我们可以通过接下来所讲解的参数来解决上述的问题。
+这个例子返回 `'不及格'`。它与查询表达式中的 `IF(condition, a, b)` 是不同语法。
 
 ### 4.2.4 参数
 
-参数的类型，主要分为以下三种：`IN`、`OUT`、`INOUT`，具体含义是：
+| 参数    | 用途                           |
+| ------- | ------------------------------ |
+| `IN`    | 输入参数，默认模式             |
+| `OUT`   | 输出参数                       |
+| `INOUT` | 读取传入值，并将修改后的值返回 |
 
-- `IN`：该类参数作为输入，也就是需要调用时传入值（默认）
-- `OUT`：该类参数作为输出，也就是该参数可以作为返回值
-- `INOUT`：既可以作为输入参数，也可以作为输出参数
-
-用法：
+把上例的分数改成输入参数，并用输出参数接收结果：
 
 ```sql
-CREATE PROCEDURE 存储过程名称 ([ IN/OUT/INOUT 参数名 参数类型 ])
-
+DELIMITER $$
+CREATE PROCEDURE p4(IN score INT, OUT result VARCHAR(10))
 BEGIN
-
- -- SQL语句
-
-END ;
+    IF score IS NULL OR score < 0 OR score > 100 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'score must be 0..100';
+    END IF;
+    IF score >= 85 THEN
+        SET result = '优秀';
+    ELSEIF score >= 60 THEN
+        SET result = '及格';
+    ELSE
+        SET result = '不及格';
+    END IF;
+END$$
+DELIMITER ;
+CALL p4(85, @result);
+SELECT @result;
 ```
 
-案例一：根据定义的分数 `score` 变量，判定当前对应的分数等级
-
-- `score >= 85` 分，等级为优秀。
-- `score >= 60` 分且 `score < 85` 分，等级为及格。
-- `score < 60` 分，等级为不及格。
+`INOUT` 示例把 200 分制换算成百分制：
 
 ```sql
-create procedure p4(in score int, out result varchar(10))
-begin
-    if score >= 85 then
-        set result := '优秀';
-    elseif score >= 60 then
-        set result := '及格';
-    else
-        set result := '不及格';
-    end if;
-end;
-
--- 定义用户变量 @result来接收返回的数据, 用户变量可以不用声明
-call p4(85,@result);
-select @result;
+DELIMITER $$
+CREATE PROCEDURE p5(INOUT score DECIMAL(6, 2))
+BEGIN
+    IF score IS NULL OR score < 0 OR score > 200 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'score must be 0..200';
+    END IF;
+    SET score = score / 2;
+END$$
+DELIMITER ;
+SET @score = 198;
+CALL p5(@score);
+SELECT @score;
 ```
 
-案例二：将传入的 200 分制的分数，进行换算，换算成百分制，然后返回。
+结果分别为 `'优秀'`、`99.00`。
+
+### 4.2.5 CASE
+
+程序中的 `CASE` 以 `END CASE` 结束，每个分支执行语句；查询中的 `CASE` 表达式则以 `END` 结束并返回一个值。
+
+以下例子按月份判断季度，避免把季度与不同地区的季节划分混用：
 
 ```sql
-create procedure p5(inout score double)
-begin
-    set score := score * 0.5;
-end;
-
-set @score = 198;
-call p5(@score);
-select @score;
+DELIMITER $$
+CREATE PROCEDURE p6(IN p_month INT)
+BEGIN
+    DECLARE result VARCHAR(10);
+    CASE
+        WHEN p_month BETWEEN 1 AND 3 THEN SET result = '第一季度';
+        WHEN p_month BETWEEN 4 AND 6 THEN SET result = '第二季度';
+        WHEN p_month BETWEEN 7 AND 9 THEN SET result = '第三季度';
+        WHEN p_month BETWEEN 10 AND 12 THEN SET result = '第四季度';
+        ELSE SET result = '非法输入';
+    END CASE;
+    SELECT result;
+END$$
+DELIMITER ;
+CALL p6(3);
 ```
 
-### 4.2.5 case
+### 4.2.6 WHILE
 
-`case` 结构及作用，和基础篇中的流程控制函数很类似，有两种语法格式：
-语法 1：
+`WHILE` 先判断条件，再执行循环。以下例子计算从 `1` 到非负整数 `n` 的和，`n = 0` 时返回 `0`：
 
 ```sql
--- 含义： 当case_value的值为 when_value1时，执行statement_list1，当值为 when_value2时，
-执行statement_list2， 否则就执行 statement_list
-
-CASE case_value
- WHEN when_value1 THEN statement_list1
- [ WHEN when_value2 THEN statement_list2] ...
- [ ELSE statement_list ]
-END CASE;
+DELIMITER $$
+CREATE PROCEDURE p7(IN n INT)
+BEGIN
+    DECLARE total BIGINT DEFAULT 0;
+    IF n IS NULL OR n < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'n must be nonnegative';
+    END IF;
+    WHILE n > 0 DO
+        SET total = total + n;
+        SET n = n - 1;
+    END WHILE;
+    SELECT total;
+END$$
+DELIMITER ;
+CALL p7(100);
 ```
 
-语法 2：
+### 4.2.7 REPEAT
+
+`REPEAT` 先执行循环体，直到 `UNTIL` 条件为真才退出。零次累加需要在进入循环前单独判断：
 
 ```sql
--- 含义： 当条件search_condition1成立时，执行statement_list1，当条件search_condition2成
-立时，执行statement_list2， 否则就执行 statement_list
-
-CASE
- WHEN search_condition1 THEN statement_list1
- [WHEN search_condition2 THEN statement_list2] ...
- [ELSE statement_list]
-END CASE;
+DELIMITER $$
+CREATE PROCEDURE p8(IN n INT)
+BEGIN
+    DECLARE total BIGINT DEFAULT 0;
+    IF n IS NULL OR n < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'n must be nonnegative';
+    END IF;
+    IF n > 0 THEN
+        REPEAT
+            SET total = total + n;
+            SET n = n - 1;
+        UNTIL n = 0
+        END REPEAT;
+    END IF;
+    SELECT total;
+END$$
+DELIMITER ;
+CALL p8(100);
 ```
 
-案例：根据传入的月份，判定月份所属的季节（要求采用 `case` 结构）。
+两种循环在 `n = 100` 时都返回 `5050`。计数范围较大时，应评估循环成本及数值类型是否足够。
 
-- 1-3 月份，为第一季度
-- 4-6 月份，为第二季度
-- 7-9 月份，为第三季度
-- 10-12 月份，为第四季度
+### 4.2.8 LOOP
+
+`LOOP` 本身没有退出条件，用 `LEAVE` 退出指定块或循环，用 `ITERATE` 跳到指定循环的下一轮。下面演示跳过偶数并累加小于 `5` 的正奇数：
 
 ```sql
-create procedure p6(in month int)
-begin
-    declare result varchar(10);
-    case
-        when month >= 1 and month <= 3
-            then set result := '春天';
-        when month > 3 and month <= 6
-            then set result := '夏天';
-        when month > 6 and month <= 9
-            then set result := '秋天';
-        when month > 9 and month <= 12
-            then set result := '冬天';
-        else
-            set result := '非法输入';
-        end case;
-    select concat('您输入的月份为： ',month,'对应的季节为： ',result);
-end;
-
-call p6(3);
-
-# 注意：如果判定条件有多个，多个条件之间，可以使用 and 或 or 进行连接。
+DELIMITER $$
+CREATE PROCEDURE p9()
+BEGIN
+    DECLARE n INT DEFAULT 0;
+    DECLARE total INT DEFAULT 0;
+    number_loop: LOOP
+        SET n = n + 1;
+        IF n >= 5 THEN LEAVE number_loop; END IF;
+        IF MOD(n, 2) = 0 THEN ITERATE number_loop; END IF;
+        SET total = total + n;
+    END LOOP number_loop;
+    SELECT total;
+END$$
+DELIMITER ;
+CALL p9();
 ```
 
-### 4.2.6 while
-
-`while` 循环是有条件的循环控制语句，满足条件后，再执行循环体中的 SQL 语句，具体语法为：
-
-```sql
--- 先判定条件，如果条件为true，则执行逻辑，否则，不执行逻辑
-
-WHILE 条件 DO
- SQL逻辑...
-END WHILE;
-```
-
-案例：计算从 1 累加到 `n` 的值，`n` 为传入的参数值
-
-```sql
-create procedure p7(in number int)
-begin
-    declare sum int default 0;
-    while number > 0 do
-        set sum := sum + number;
-        set number := number - 1;
-        end while;
-    select sum;
-end;
-
-call p7(100);
-```
-
-### 4.2.7 repeat
-
-`repeat` 是具有条件的循环控制语句，当满足 `until` 声明的条件的时候，则退出循环，具体语法为：
-
-```sql
--- 先执行一次逻辑，然后判定UNTIL条件是否满足，如果满足，则退出。如果不满足，则继续下一次循环
-
-REPEAT
- SQL逻辑...
- UNTIL 条件
-
-END REPEAT;
-```
-
-案例：计算从 1 累加到 `n` 的值，`n` 为传入的参数值
-
-```sql
-create procedure p8(in number int)
-begin
-    declare sum int default 0;
-    repeat
-        set sum := sum + number;
-        set number := number - 1;
-    until number < 0 end repeat;
-    select sum;
-end;
-
-call p8(100);
-```
-
-### 4.2.8 loop
-
-`loop` 实现简单的循环，如果不在 SQL 逻辑中增加退出循环的条件，可以用其来实现简单的死循环，`loop` 可以配合以下两个语句使用：
-
-- `LEAVE`：配合循环使用，退出循环
-- `ITERATE`：必须用在循环中，作用是跳过当前循环剩下的语句，直接进入下一次循环
-
-```sql
-[begin_label:] LOOP
- SQL逻辑...
-END LOOP [end_label];
-```
-
-```sql
-LEAVE label; -- 退出指定标记的循环体
-
-ITERATE label; -- 直接进入下一次循环
-```
-
-上述语法中出现的 `begin_label`，`end_label`，`label` 指的都是我们所自定义的标记。
+结果为 `4`。[存储程序流程控制](https://dev.mysql.com/doc/refman/8.4/en/flow-control-statements.html)
 
 ## 4.3 存储函数
 
-存储函数是有返回值的存储过程，存储函数的参数只能是 `IN` 类型的，具体语法如下：
+存储函数通过 `RETURN` 返回单个值，可以用于表达式；它不是「把存储过程加一个返回值」就可以随意互换，函数的参数和可执行语句有额外限制。
 
 ```sql
-CREATE FUNCTION 存储函数名称 ([ 参数列表 ])
-RETURNS type [characteristic ...]
-
+DELIMITER $$
+CREATE FUNCTION half_score(score DECIMAL(6, 2))
+RETURNS DECIMAL(6, 2)
+DETERMINISTIC
+NO SQL
 BEGIN
-
- -- SQL语句
-
- RETURN ...;
-END ;
-
-characteristic说明：
-DETERMINISTIC：相同的输入参数总是产生相同的结果
-NO SQL ：不包含 SQL 语句。
-READS SQL DATA：包含读取数据的语句，但不包含写入数据的语句。
+    RETURN score / 2;
+END$$
+DELIMITER ;
+SELECT half_score(198);
 ```
+
+`DETERMINISTIC` 声明相同输入产生相同结果；`NO SQL`、`READS SQL DATA` 等用于声明数据访问特征。它们不是由 MySQL 自动证明的性质，必须符合函数实际行为。启用二进制日志时，创建函数还受权限和相关配置限制。[存储过程与函数语法](https://dev.mysql.com/doc/refman/8.4/en/create-procedure.html)
 
 ## 4.4 触发器
 
-### 4.1. 介绍
+### 4.4.1 介绍 {#_4-1-介绍}
 
-触发器是与表有关的数据库对象，指在 `insert`/`update`/`delete` 之前或之后，触发并执行触发器中定义的 SQL 语句集合，触发器的这种特性可以协助应用在数据库端保证数据的完整性，日志记录，数据校验等操作。
-使用别名 `OLD` 和 `NEW` 来引用触发器中发生变化的记录内容，者与其他的数据库是相似的。现在触发器还只支持行级触发，不支持语句级触发
-![介绍（图 1）](/note-mysql/assets/1683784221876-a77c4018-4bf1-4b7c-93aa-34a8b14ffa4b.png)
+触发器在指定表发生 `INSERT`、`UPDATE`、`DELETE` 时，按 `BEFORE` 或 `AFTER` 时机自动逐行执行。MySQL 使用行级触发器；`TRUNCATE TABLE` 不会触发 `DELETE` 触发器。
 
-### 4.2 语法
+| 事件     | 可引用的记录 |
+| -------- | ------------ |
+| `INSERT` | `NEW`        |
+| `UPDATE` | `OLD`、`NEW` |
+| `DELETE` | `OLD`        |
 
-创建：
+![OLD 与 NEW 的适用事件](/note-mysql/assets/1683784221876-a77c4018-4bf1-4b7c-93aa-34a8b14ffa4b.png)
+
+### 4.4.2 语法 {#_4-2-语法}
+
+创建时指定触发器名、时机、事件、表和 `FOR EACH ROW`；触发器体包含多条语句时，也需正确处理客户端结束符。
 
 ```sql
-CREATE TRIGGER trigger_name
-BEFORE/AFTER INSERT/UPDATE/DELETE
+SHOW TRIGGERS;
+```
 
-ON tbl_name FOR EACH ROW -- 行级触发器
+删除使用 `DROP TRIGGER 触发器名`。InnoDB 上触发器的修改与触发它的语句属于同一事务；不能把触发器当成独立提交的审计通道。[触发器规则](https://dev.mysql.com/doc/refman/8.4/en/trigger-syntax.html)
 
+### 4.4.3 案例 {#_4-3-案例}
+
+下面只演示记录插入事件。用 `JSON_OBJECT()` 保存参数，可以保留空值的含义，避免 `CONCAT()` 因某列为空而把整段日志变为 `NULL`。
+
+```sql
+CREATE TABLE user_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    operation VARCHAR(10) NOT NULL,
+    operate_time DATETIME(6) NOT NULL,
+    operate_id INT NOT NULL,
+    operate_params JSON NOT NULL
+) ENGINE = InnoDB;
+
+DELIMITER $$
+CREATE TRIGGER tb_user_insert_trigger
+AFTER INSERT ON tb_user FOR EACH ROW
 BEGIN
+    INSERT INTO user_logs (operation, operate_time, operate_id, operate_params)
+    VALUES ('insert', NOW(6), NEW.id,
+            JSON_OBJECT('id', NEW.id, 'name', NEW.name,
+                        'phone', NEW.phone, 'email', NEW.email,
+                        'profession', NEW.profession));
+END$$
+DELIMITER ;
 
- trigger_stmt ;
-END;
+START TRANSACTION;
+INSERT INTO tb_user (id, name, phone, email, profession, age, gender, status, createtime)
+VALUES (26, '示例用户', '18800000000', NULL, '软件工程', 23, '1', '1', NOW());
+SELECT operation, operate_id, operate_params FROM user_logs ORDER BY id;
+ROLLBACK;
 ```
 
-查看：`SHOW TRIGGERS ;`
-删除：`DROP TRIGGER [schema_name.]trigger_name ;` -- 如果没有指定 `schema_name`，默认为当前数据库。
+回滚后，新员工和本次触发器写入的日志都会撤销。对更新、删除事件记录日志时，再分别使用对应事件允许的 `OLD` / `NEW` 数据。
 
-### 4.3 案例
-
-通过触发器记录 `tb_user` 表的数据变更日志，将变更日志插入到日志表 `user_logs` 中, 包含增加, 修改 , 删除
-建表：
-
-```sql
--- 准备工作 : 日志表 user_logs
-
-create table user_logs(
- id int(11) not null auto_increment,
- operation varchar(20) not null comment '操作类型, insert/update/delete',
- operate_time datetime not null comment '操作时间',
- operate_id int(11) not null comment '操作的ID',
- operate_params varchar(500) comment '操作参数',
- primary key(`id`)
-)engine=innodb default charset=utf8;
-```
-
-创建触发器：
-
-```sql
-create trigger tb_user_insert_trigger
- after insert on tb_user for each row
-
-begin
- insert into user_logs(id, operation, operate_time, operate_id, operate_params)
-VALUES
- (null, 'insert', now(), new.id, concat('插入的数据内容为:
-id=',new.id,',name=',new.name, ', phone=', NEW.phone, ', email=', NEW.email, ',
-profession=', NEW.profession));
-end;
-```
-
-查看：
-
-```sql
--- 查看
-
-show triggers ;
-
--- 插入数据到tb_user
-
-insert into tb_user(id, name, phone, email, profession, age, gender, status,
-createtime) VALUES (26,'三皇子','18809091212','erhuangzi@163.com','软件工
-程',23,'1','1',now());
-```
-
-![案例（图 1）](/note-mysql/assets/1683784864548-4f27a583-bd4b-4e7e-b872-4792fc4569f0.png)
+![旧环境中的插入触发器示例](/note-mysql/assets/1683784864548-4f27a583-bd4b-4e7e-b872-4792fc4569f0.png)
